@@ -1,0 +1,201 @@
+html,
+body {
+  padding: 0;
+  margin: 0;
+}
+
+.container {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  line-height: 1;
+}
+
+.rotaryContainer {
+  background-color: red;
+  color: white;
+  height: 18px;
+  // margin-top: 10px;
+  line-height: 18px;
+  overflow: hidden;
+  position: relative;
+}
+
+.rotary-block-first {
+  animation: rotary-block-first 20s linear infinite;
+  white-space: nowrap;
+  position: absolute;
+  width: 100%;
+}
+
+.rotary-block-second {
+  animation: rotary-block-second 20s linear infinite;
+  position: absolute;
+  white-space: nowrap;
+  width: 100%;
+}
+
+@keyframes rotary-block-first {
+  0% { left: 0; }
+  100% { left: -110%; }
+}
+
+@keyframes rotary-block-second {
+  0% { left: 110%; }
+  100% { left: 0; }
+}
+
+@media screen and (max-width: 1250px) {
+  @keyframes rotary-block-first {
+    0% { left: 0; }
+    100% { left: -1200px; } /* 1200px为文本的长度，利用多媒体查询，当屏幕宽度太小时，就设置滚动距离为文本的长度 */
+  }
+  @keyframes rotary-block-second {
+    0% { left: 1200px; }
+    100% { left: 0; }
+  }
+}
+
+.control {
+  display: flex;
+
+  &-form {
+    flex: 1 1 auto;
+
+    .url {
+      display: flex;
+      flex: 0 0 auto;
+      border-bottom: 1px solid #cccccc;
+
+      &-input {
+        flex: 1 1 auto;
+        padding: 5px 10px;
+        border: none;
+
+        &:focus {
+          outline: none;
+        }
+      }
+
+      &-mode,
+      &-data {
+        flex: 0 0 auto;
+        min-width: 30px;
+        padding-left: 10px;
+        padding-right: 10px;
+        border: none;
+        border-left: 1px solid #dcdcdc;
+        cursor: pointer;
+      }
+    }
+
+    .fatherData {
+      position: relative;
+
+      .btn {
+        position: absolute;
+        right: 1px;
+        height: 8px;
+        bottom: 3px;
+        background-color: #00bfff;
+        padding: 10px;
+        border-radius: 5px;
+        opacity: 0;
+      }
+
+      &:hover .btn {
+        visibility: visible;
+        opacity: 1;
+      }
+    }
+
+    .data {
+      &-item {
+        display: flex;
+        border-bottom: 1px solid #cccccc;
+
+        &-text {
+          font-size: 20px;
+        }
+
+        &-key,
+        &-value {
+          flex: 1 1 auto;
+          padding: 5px 10px;
+          border: none;
+
+          &:focus {
+            outline: none;
+          }
+        }
+
+        &-delete {
+          flex: 0 0 auto;
+          min-width: 30px;
+          padding-left: 10px;
+          padding-right: 10px;
+          border: none;
+          border-left: 1px solid #dcdcdc;
+          cursor: pointer;
+        }
+      }
+
+      &-json {
+        display: flex;
+
+        &__input {
+          flex: 1 1 auto;
+          resize: none;
+          border: none;
+
+          &:focus {
+            outline: none;
+          }
+
+          &.error {
+            color: #ca2610;
+          }
+        }
+      }
+    }
+  }
+
+  .attention {
+    border: 1px solid #ffd77a;
+    background-color: #fff9e6;
+    padding-left: 30px;
+
+    .text {
+      font-size: 12px;
+      padding-left: 60px;
+      padding-bottom: 10px;
+    }
+  }
+
+  &-go {
+    flex: 0 0 auto;
+    border-left: 1px solid #dcdcdc;
+    display: flex;
+
+    &-button {
+      flex: 0 0 auto;
+      padding-left: 10px;
+      padding-right: 10px;
+      border: none;
+      cursor: pointer;
+    }
+  }
+}
+
+.childrenUrl {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 800px;
+  height: 50px;
+}
+
+.demo {
+  flex: 1 1 auto;
+  overflow: auto;
+}
