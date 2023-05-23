@@ -1,13 +1,33 @@
 /** @jsxRuntime classic */
 /** @jsx jsxCustomEvent */
+import { DeleteOutlined } from '@ant-design/icons';
 import microApp from '@micro-zoe/micro-app';
 import jsxCustomEvent from '@micro-zoe/micro-app/polyfill/jsx-custom-event';
-import classNames from 'classnames';
+import {
+  Alert,
+  Button,
+  Card,
+  Checkbox,
+  Divider,
+  Form,
+  Input,
+  Layout,
+  message,
+  Select,
+  Space,
+  Switch,
+  Table,
+  Typography,
+} from 'antd';
 import React from 'react';
 
 import { decodeJSON, encodeJSON } from '@/utils/json';
 
 import styles from './index.module.less';
+
+const { Header, Content } = Layout;
+const { Title, Text } = Typography;
+const { Option } = Select;
 
 // Fake all web requests' referer.
 const onBeforeSendHeaders = window.chrome?.webRequest?.onBeforeSendHeaders;
@@ -27,36 +47,31 @@ if (onBeforeSendHeaders) {
 }
 
 microApp.start({
-  fetch (url, options, appName) {
-    if (url.substring(0, 2) === '//') {
+  fetch(url, options, appName) {
+    if (url.slice(0, 2) === '//') {
       url = ((window as unknown as { __MICRO_APP_EXTENSION_URL_PROTOCOL__: string }).__MICRO_APP_EXTENSION_URL_PROTOCOL__ ?? 'http:') + url;
     }
     return window.fetch(url, options)
-      .then((res) => {
-        return res.text();
-      });
+      .then(res => res.text());
   },
   plugins: {
     // 全局插件，作用于所有子应用的js文件
     global: [{
       // 必填，js处理函数，必须返回code值
-      loader: (code: string, url: string, option?: any) => {
-        return `${
-          [
-            'if (!window.__MICRO_APP_EXTENSION_FETCH__) {',
-            '  window.__MICRO_APP_EXTENSION_FETCH__ = window.fetch;',
-            '  window.fetch = function(url, options) {',
-            '    if (url.substring(0, 2) === \'//\') {',
-            '      url = window.location.protocol + url;',
-            '    }',
-            '    return window.__MICRO_APP_EXTENSION_FETCH__(url, options);',
-            '  };',
-            '}',
-          ].join('')
-        }${code}`;
-      },
-    }]
-  }
+      loader: (code: string, url: string, option?: any) => `${[
+        'if (!window.__MICRO_APP_EXTENSION_FETCH__) {',
+        '  window.__MICRO_APP_EXTENSION_FETCH__ = window.fetch;',
+        '  window.fetch = function(url, options) {',
+        '    if (url.substring(0, 2) === \'//\') {',
+        '      url = window.location.protocol + url;',
+        '    }',
+        '    return window.__MICRO_APP_EXTENSION_FETCH__(url, options);',
+        '  };',
+        '}',
+      ].join('')
+        }${code}`,
+    }],
+  },
 });
 
 interface ControlData {
@@ -64,304 +79,362 @@ interface ControlData {
   data: { key: string; value: string }[];
 }
 
-interface SimulationPageProps {}
+interface KeyValueData {
+  id: number;
+  key: string;
+  value: string | number | boolean;
+  checked: boolean;
+}
+
+interface SimulationPageProps { }
 
 interface SimulationPageState {
   url: ControlData['url'];
   mode: 'json' | 'list';
-  data: ControlData['data'];
   timeStr: number;
   fatherData: string;
-  childData: Record<string,unknown>;
-  dataJSON: string;
-  dataJSONValid: boolean;
-  demo: {
-    url: ControlData['url'];
-    data: ControlData['data'];
-  };
+  prefix: string;
+  showKVType: boolean;
+  dataSource: KeyValueData[];
+  jsonInputError: boolean;
+  microAppUrl: string;
 }
 
 class SimulationPage extends React.PureComponent<SimulationPageProps, SimulationPageState> {
   public state: SimulationPageState = {
     url: '',
     mode: 'json',
-    data: [],
     fatherData: '',
-    timeStr: new Date().valueOf(),
-    childData: {},
-    dataJSON: '[]',
-    dataJSONValid: true,
-    demo: {
-      url: '',
-      data: [],
-    },
+    timeStr: Date.now(),
+    prefix: 'https://',
+    showKVType: true, // 传递数据是否显示为KV格式
+    dataSource: [{
+      id: this.randomId(),
+      checked: true,
+      key: '',
+      value: '',
+    }],
+    jsonInputError: false, // 手动输入的json格式错误
+    microAppUrl: '',
   };
 
   private applyControl() {
+    const {
+      url,
+    } = this.state;
     window.location.search = encodeURIComponent(encodeJSON({
-      url: this.state.url,
-      data: this.state.dataJSON,
-      // 'micro-app-demo': this.state?.url.replace(/^https?:\/\/[^/]+/ui, ''),
+      url,
     }));
   }
 
+  /**
+   * 解析URL，并返回一个对象
+   * @param path 路径类似： /test/test.html?type=1&joey=1#111
+   * @returns 解析为： {pathname: "/test/test.html", search: "?type=1&joey=1", hash: "#111"}
+   */
+  private parsePath(path: string) {
+    let pathname = path || '/';
+    let search = '';
+    let hash = '';
+
+    const hashIndex = pathname.indexOf('#');
+    if (hashIndex !== -1) {
+      hash = pathname.slice(hashIndex);
+      pathname = pathname.slice(0, Math.max(0, hashIndex));
+    }
+
+    const searchIndex = pathname.indexOf('?');
+    if (searchIndex !== -1) {
+      search = pathname.slice(searchIndex);
+      pathname = pathname.slice(0, Math.max(0, searchIndex));
+    }
+
+    return {
+      pathname,
+      search: search === '?' ? '' : search,
+      hash: hash === '#' ? '' : hash,
+    };
+  }
+
   private updateControl(str?: string) {
-    const { childData, timeStr } = this.state;
+    const { timeStr } = this.state;
     const q = decodeJSON<ControlData>(decodeURIComponent(window.location.search.slice(1)));
-    console.log(q, typeof q, window.location.search '-----q');
-    
-    
+
     if (q || q === 'undefined') {
       const url = q.url;
-      const data: SimulationPageState['data'] = [];
-      if (typeof q.data === 'string' && q.data) {
-        const list = JSON.parse(q.data);
-        if (Array.isArray(list)) {
-          list.forEach((d) => {
-            data.push(d);
-          });
-        }
-      } 
       (window as unknown as { __MICRO_APP_EXTENSION_URL_PROTOCOL__: string }).__MICRO_APP_EXTENSION_URL_PROTOCOL__ = url.replace(/:\/\/.+$/ui, ':');
-      this.setState({ url, data, childData: str === 'init' ? childData: JSON.parse(this.state.fatherData), timeStr: str === 'init' ? timeStr: new Date().valueOf() ,dataJSON: data.length === 0 ? '' : encodeJSON(data), dataJSONValid: true, demo: { url, data } });
+      this.setState({
+        url,
+        timeStr: str === 'init' ? timeStr : Date.now(),
+        microAppUrl: url,
+      });
     }
-    if(q?.url && q?.url.indexOf('#') ) {
-      const urlLocation: string = q?.url.replace(/^https?:\/\/[^/]+/ui, ''); 
-      if(parsePath(urlLocation).hash !== parsePath(window.location.href).hash) {
-        if(parsePath(window.location.href).hash) {
-          // parsePath(window.location.href).hash = parsePath(urlLocation).hash
-          let finalUrl = window.location.href.replace(parsePath(window.location.href).hash, parsePath(urlLocation).hash);
-          window.location.replace(finalUrl)
+    if (q?.url && q?.url.indexOf('#')) {
+      const urlLocation: string = q?.url.replace(/^https?:\/\/[^/]+/ui, '');
+      if (this.parsePath(urlLocation).hash !== this.parsePath(window.location.href).hash) {
+        if (this.parsePath(window.location.href).hash) {
+          const finalUrl = window.location.href.replace(this.parsePath(window.location.href).hash, this.parsePath(urlLocation).hash);
+          window.location.replace(finalUrl);
         }
-        let finalUrl = window.location.href + parsePath(urlLocation).hash;
-        window.location.replace(finalUrl)
+        const finalUrl = window.location.href + this.parsePath(urlLocation).hash;
+        window.location.replace(finalUrl);
       }
     }
-    /**
- * 解析URL，并返回一个对象
- * 类似： /test/test.html?type=1&joey=1#111
- * 解析为： {pathname: "/test/test.html", search: "?type=1&joey=1", hash: "#111"}
- */
-function parsePath(path: string) {
-  var pathname = path || '/';
-  var search = '';
-  var hash = '';
-
-  var hashIndex = pathname.indexOf('#');
-  if (hashIndex !== -1) {
-    hash = pathname.substr(hashIndex);
-    pathname = pathname.substr(0, hashIndex);
-  }
-
-  var searchIndex = pathname.indexOf('?');
-  if (searchIndex !== -1) {
-    search = pathname.substr(searchIndex);
-    pathname = pathname.substr(0, searchIndex);
-  }
-
-  return {
-    pathname: pathname,
-    search: search === '?' ? '' : search,
-    hash: hash === '#' ? '' : hash
-  };
-  
-}
-
-  }
-
-  private insertDataItem = () => {
-    this.setState((state) => {
-      const data = [...state.data, { key: '', value: '' }];
-      return {
-        data,
-        dataJSON: encodeJSON(data),
-        dataJSONValid: true,
-      };
-    });
-  };
-
-  private setDataItemValue<TK extends keyof ControlData['data'][number]>(item: ControlData['data'][number], k: TK, v: ControlData['data'][number][TK]) {
-    this.setState((state) => {
-      const data = [...state.data.map(d => (d === item ? { ...d, [k]: v } : d))];
-      return {
-        data,
-        dataJSON: encodeJSON(data),
-        dataJSONValid: true,
-      };
-    });
-  }
-
-  private removeDataItem(item: ControlData['data'][number]) {
-    this.setState((state) => {
-      const data = [...state.data.filter(d => d !== item)];
-      return {
-        data,
-        dataJSON: encodeJSON(data),
-        dataJSONValid: true,
-      };
-    });
-  }
-
-  private setDataJSON(dataJSON: string) {
-    const data = decodeJSON<ControlData['data']>(dataJSON);
-    const dataJSONValid = Array.isArray(data);
-    this.setState({ data: dataJSONValid ? data : [], dataJSON, dataJSONValid });
   }
 
   public componentDidMount(): void {
     this.updateControl('init');
   }
 
-  private renderData() {
-    if (this.state.mode === 'list') {
-      return this.state.data.map((item, i) => (
-        <div className={styles['data-item']} key={i}>
-          <input
-            className={styles['data-item-key']}
-            type="text"
-            placeholder="Data Key"
-            value={item.key}
-            onChange={(e) => { this.setDataItemValue(item, 'key', e.target.value); }}
-          />
-          <span className={styles['data-item-text']}>=</span>
-          <input
-            className={styles['data-item-value']}
-            type="text"
-            placeholder="Data Value"
-            value={item.value}
-            onChange={(e) => { this.setDataItemValue(item, 'value', e.target.value); }}
-          />
-          <button className={styles['data-item-delete']} type="button" onClick={() => { this.removeDataItem(item); }}>➖</button>
-        </div>
-      ));
-    }
-    return (
-      <div className={styles['data-json']}>
-        <textarea
-          className={
-            classNames(
-              styles['data-json__input'],
-              { [styles.error]: !this.state.dataJSONValid },
-            )
-          }
-          value={this.state.dataJSON === '[]' ? '' : this.state.dataJSON}
-          placeholder="Data JSON"
-          rows={3}
-          onChange={(e) => { this.setDataJSON(e.target.value); }}
-        />
-      </div>
-    );
-  }
-
   // 批量校验input必填项;
-  private check() {
+  private check = () => {
     const { url } = this.state;
     if (!url) {
-      alert('请输入子页面URL!!!');
+      message.warning('请输入子页面URL');
       return void 0;
     }
     this.applyControl();
-    // this.handleData();
     this.updateControl();
     return void 0;
-    
+  };
+
+  private randomId(): number {
+    return Number(Math.random() * 10000);
   }
 
-  // 格式化输入的fatherData
-  private handleData = () => {
-    const { fatherData } = this.state;
+  private deleteOneData = (e: KeyValueData): void => {
+    this.setState({
+      dataSource: this.state.dataSource.filter(el => el.id !== e.id),
+    });
+  };
+
+  private changeData = (e: {
+    type: 'key' | 'value' | 'checked';
+    value: string | number | boolean;
+    record: KeyValueData;
+  }): void => {
+    this.setState({
+      dataSource: this.state.dataSource.map((el: KeyValueData): KeyValueData => {
+        if (el.id === e.record.id) {
+          if (e.type === 'key') {
+            return {
+              ...el,
+              key: String(e.value),
+            };
+          } if (e.type === 'value') {
+            return {
+              ...el,
+              value: e.value,
+            };
+          } if (e.type === 'checked') {
+            return {
+              ...el,
+              checked: !!e.value,
+            };
+          }
+        }
+        return el;
+      }),
+    }, () => {
+      const lastRecord = this.state.dataSource[this.state.dataSource.length - 1];
+      if (e.record.id === lastRecord.id && (lastRecord.key || lastRecord.value)) {
+        this.setState({
+          dataSource: [...this.state.dataSource, {
+            id: this.randomId(),
+            checked: true,
+            key: '',
+            value: '',
+          }],
+        });
+      }
+    });
+  };
+
+  private changeTextAreaData = (value: string): void => {
     try {
-      const inputCode = JSON.parse(fatherData);
-      const formattedCode = JSON.stringify(inputCode, null, 4);
-      this.setState({fatherData:formattedCode })
-    } catch {
-      alert('解析出错, 请输入正确的JSON格式数据');
+      const newValue = JSON.parse(value || '{}');
+      const newDataSource: KeyValueData[] = [];
+      for (const key of Object.keys(newValue)) {
+        const newDataValue: string | number = newValue[key];
+        newDataSource.push({
+          id: this.randomId(),
+          checked: true,
+          key,
+          value: newDataValue,
+        });
+      }
+      newDataSource.push({
+        id: this.randomId(),
+        checked: true,
+        key: '',
+        value: '',
+      });
+      this.setState({
+        dataSource: newDataSource,
+        jsonInputError: false,
+      });
+    } catch (error) {
+      this.setState({
+        jsonInputError: true,
+      });
     }
-  }
+  };
 
-  private renderDateTable() {
-    const { url } = this.state;
-    const baceUrl = url ? url.split('#')[0] : '';    
-    return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-        <div>
-        <div>
-          <div className={styles.attention}>
-            <p>温馨提示：</p>
-            <div className={styles.text}>1、目前插件版本只能模拟 micro-app 版本为 0.x 且子应用为 hash 路由的场景!</div>
-            <div className={styles.text}>2、目前对于某些页面中http/https协议是简写//形式的链接由于插件本身限制无法实现跳转！</div>
-          </div>
-        </div>
-        <div className={styles.childrenUrl}>
-          <p style={{ width: 100, display: 'flex', justifyContent: 'space-around', alignItems: 'center' }}>
-            <span className="required" style={{ color: 'red' }}>*</span>
-            <h3>子页面URL：</h3>
-          </p>
-          <input type="text" required style={{ width: 600 }} placeholder="子页面URL" value={this.state?.url ? this.state.url : ''} onChange={(e) => { this.setState({ url: e.target.value }); }} />
-          <button style={{ backgroundColor: '#00BFFF', width: 80, borderRadius: 5, borderColor: '#00BFFF' }} type="button" onClick={(e) => { this.check(); }}>确认</button>
-        </div>
-        <div className={styles.childrenUrl}>
-          <p style={{ paddingLeft: 18 }}>
-            <h3>
-              父应用数据:
-            </h3>
-          </p>
-          <div className={styles.fatherData}>
-            <textarea
-              value={this.state.fatherData}
-              style={{ width: 688 }}
-              placeholder="请输入JSON格式的数据"
-              rows={3}
-              onChange={(e) => { this.setState({ fatherData: e.target.value}); }}
-            />
-            <div className={styles.btn} onClick={this.handleData}>JSON格式化</div>
-          </div>
-
-        </div>
-        <div className={styles.childrenUrl}>
-          <p>
-            <h3>子应用嵌入代码:</h3>
-          </p>
-          <input style={{ width: 686 }} type="text" placeholder="子应用嵌入代码" value={this.state.url ? `<micro-app url=${baceUrl} name="micro-app-demo"></micro-app>` : ''} />
-        </div>
-      </div>
-      </div>
-      
-    );
-  }
+  private changeInputUrl = (url: string) => {
+    const matchUrl = url.match(/^http(s)?:\/\//u);
+    if (matchUrl) {
+      this.setState({
+        prefix: matchUrl[0],
+        url: url.replace(/^http(s)?:\/\//u, ''),
+      });
+    } else {
+      this.setState({
+        url,
+      });
+    }
+  };
 
   public render() {
-    const { childData, timeStr } = this.state;
-    console.log(this.state.demo.url,'======this.state.demo.url');
-    
-      console.log(this.state.childData, typeof childData, typeof ({ruleId: 'ro1HA4cBsQoJeOkDCGcp'}) ,'--childData');
-    
+    const { timeStr, url, prefix, showKVType, dataSource, jsonInputError, microAppUrl } = this.state;
+    const baceUrl = url ? url.split('#')[0] : '';
+    const data = {};
+    for (const el of dataSource) {
+      if (el.checked && el.key !== '' && el.value !== '') {
+        if (Number.isNaN(el.value)) {
+          data[el.key] = el.value;
+        } else {
+          data[el.key] = Number.parseFloat(String(el.value));
+        }
+      }
+    }
+    let validateStatus: '' | 'error' = '';
+    if (!showKVType && jsonInputError) {
+      validateStatus = 'error';
+    }
     return (
-      <div className={styles.container}>
-        <div className={styles.control}>
-          <div className={styles['control-form']}>
-            <h1 style={{ display: 'flex', justifyContent: 'center' }}>子应用开发环境模拟</h1>
-            <div>
-              { this.renderDateTable() }
-            </div>
-            <hr />
-            <div className={styles.url}>
-              <button className={styles['url-mode']} type="button" onClick={() => { this.setState(state => ({ mode: state.mode === 'list' ? 'json' : 'list' })); }}>父应用数据JSON转换</button>
-              { this.state.mode === 'list' && <button className={styles['url-data']} type="button" onClick={this.insertDataItem}>➕</button> }
-            </div>
-            <div className={styles.data}>
-              { this.renderData() }
-            </div>
-          </div>
-        </div>
-        <micro-app
-          class={styles.demo}
-          url={this.state.demo.url}
-          name="micro-app-demo"
-          data={childData}
-          key={`${timeStr}`}
-        />);
-      </div>
+      <Space direction="vertical" style={{ width: '100%' }} size={[0, 48]}>
+        <Header style={{ backgroundColor: '#ffffff' }}>
+          <Title level={3}>子应用开发环境模拟</Title>
+          <Alert
+            type="warning"
+            message={(
+              <div>
+                <div>目前插件版本只能模拟 micro-app 版本为 0.x 且子应用为 hash 路由的场景；</div>
+                <div>目前对于某些页面中http/https协议是简写//形式的链接由于插件本身限制无法实现跳转。</div>
+              </div>
+            )}
+          />
+        </Header>
+        <Content style={{ padding: '0 50px' }}>
+          <Card>
+            <Form
+              labelCol={{ span: 6 }}
+              wrapperCol={{ span: 14 }}
+            >
+              <Form.Item label="子页面URL" required>
+                <Input.Search
+                  addonBefore={(
+                    <Select value={prefix} onChange={newPrefix => this.setState({ prefix: newPrefix })}>
+                      <Option value="http://">http://</Option>
+                      <Option value="https://">https://</Option>
+                    </Select>
+                  )}
+                  placeholder="请输入"
+                  value={this.state?.url ? this.state.url : ''}
+                  onChange={e => this.changeInputUrl(e.target.value)}
+                  enterButton="确定"
+                  onSearch={this.check}
+                />
+              </Form.Item>
+              {url && (
+                <Form.Item label="子应用嵌入代码">
+                  <Text copyable>{`<micro-app url="${prefix}${baceUrl}" name="micro-app-demo"></micro-app>`}</Text>
+                </Form.Item>
+              )}
+              <Form.Item
+                label={(
+                  <Space>
+                    <span>父应用传递数据</span>
+                    <Switch unCheckedChildren="JSON" checkedChildren="KV" checked={showKVType} onChange={e => this.setState({ showKVType: e })} />
+                  </Space>
+                )}
+                validateStatus={validateStatus}
+                help={jsonInputError ? '请输入标准JSON格式数据' : ''}
+              >
+                {showKVType
+                  ? (
+                    <Table
+                      columns={[{
+                        dataIndex: 'checked',
+                        render: (text, record) => (
+                          <Checkbox
+                            checked={record.checked}
+                            onChange={e => this.changeData({
+                              type: 'checked',
+                              value: e.target.checked,
+                              record,
+                            })}
+                          />
+                        ),
+                      }, {
+                        title: 'Key',
+                        dataIndex: 'key',
+                        render: (text, record) => (
+                          <Input
+                            size="small"
+                            value={text || ''}
+                            onChange={e => this.changeData({
+                              type: 'key',
+                              value: e.target.value,
+                              record,
+                            })}
+                          />
+                        ),
+                      }, {
+                        title: 'Value',
+                        dataIndex: 'value',
+                        render: (text, record) => (
+                          <Input
+                            size="small"
+                            value={text || ''}
+                            onChange={e => this.changeData({
+                              type: 'value',
+                              value: e.target.value,
+                              record,
+                            })}
+                          />
+                        ),
+                      }, {
+                        title: '操作',
+                        dataIndex: 'edit',
+                        render: (text, record) => <Button size="small" type="link" disabled={dataSource.length <= 1} icon={<DeleteOutlined rev={null} className="DeleteIcon" />} onClick={() => this.deleteOneData(record)} />,
+                      }]}
+                      dataSource={dataSource}
+                      size="small"
+                      pagination={false}
+                      rowKey="id"
+                    />
+                  )
+                  : (
+                    <Input.TextArea
+                      bordered
+                      defaultValue={JSON.stringify(data)}
+                      onChange={e => this.changeTextAreaData(e.target.value)}
+                    />
+                  )}
+              </Form.Item>
+            </Form>
+          </Card>
+          <Divider orientation="left">子应用预览</Divider>
+          <micro-app
+            className={styles.demo}
+            url={prefix + microAppUrl}
+            name="micro-app-demo"
+            data={data}
+            key={`${timeStr}`}
+          />
+        </Content>
+      </Space>
     );
   }
 }

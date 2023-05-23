@@ -36,23 +36,45 @@ body {
 }
 
 @keyframes rotary-block-first {
-  0% { left: 0; }
-  100% { left: -110%; }
+  0% {
+    left: 0;
+  }
+
+  100% {
+    left: -110%;
+  }
 }
 
 @keyframes rotary-block-second {
-  0% { left: 110%; }
-  100% { left: 0; }
+  0% {
+    left: 110%;
+  }
+
+  100% {
+    left: 0;
+  }
 }
 
 @media screen and (max-width: 1250px) {
   @keyframes rotary-block-first {
-    0% { left: 0; }
-    100% { left: -1200px; } /* 1200px为文本的长度，利用多媒体查询，当屏幕宽度太小时，就设置滚动距离为文本的长度 */
+    0% {
+      left: 0;
+    }
+
+    100% {
+      left: -1200px;
+    }
+
+    /* 1200px为文本的长度，利用多媒体查询，当屏幕宽度太小时，就设置滚动距离为文本的长度 */
   }
   @keyframes rotary-block-second {
-    0% { left: 1200px; }
-    100% { left: 0; }
+    0% {
+      left: 1200px;
+    }
+
+    100% {
+      left: 0;
+    }
   }
 }
 
@@ -198,4 +220,12 @@ body {
 .demo {
   flex: 1 1 auto;
   overflow: auto;
+}
+
+.DeleteIcon {
+  color: gray;
+}
+
+.DeleteIcon:hover {
+  color: #e2231a;
 }
