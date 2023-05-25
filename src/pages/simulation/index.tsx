@@ -1,6 +1,9 @@
 /** @jsxRuntime classic */
 /** @jsx jsxCustomEvent */
-import { DeleteOutlined } from '@ant-design/icons';
+import {
+  DeleteOutlined,
+  RedoOutlined
+} from '@ant-design/icons';
 import microApp from '@micro-zoe/micro-app';
 import jsxCustomEvent from '@micro-zoe/micro-app/polyfill/jsx-custom-event';
 import {
@@ -470,7 +473,7 @@ class SimulationPage extends React.PureComponent<SimulationPageProps, Simulation
                       }, {
                         title: '操作',
                         dataIndex: 'edit',
-                        render: (text, record) => <Button size="small" type="link" disabled={dataSource.length <= 1} icon={<DeleteOutlined rev={null} className="DeleteIcon" />} onClick={() => this.deleteOneData(record)} />,
+                        render: (text, record, index) => <Button size="small" type="link" disabled={dataSource.length <= 1 || index === dataSource.length - 1} icon={<DeleteOutlined rev={null} className="DeleteIcon" />} onClick={() => this.deleteOneData(record)} />,
                       }]}
                       dataSource={dataSource}
                       size="small"
@@ -493,7 +496,7 @@ class SimulationPage extends React.PureComponent<SimulationPageProps, Simulation
               </Form.Item>}
             </Form>
           </Card>
-          <Divider orientation="left">子应用预览<Divider type="vertical" /><Button type='link' size='small' onClick={this.refresh}>刷新</Button></Divider>
+          <Divider orientation="left">子应用预览<Divider type="vertical" /><Button type='link' size='small' onClick={this.refresh} icon={<RedoOutlined rev={null} />}>刷新</Button></Divider>
           {microAppUrl && <micro-app
             className={styles.demo}
             url={prefix + microAppUrl}
