@@ -70,7 +70,11 @@
 ## 4、Console子应用控制台
 尽情期待
 
-# 🤝 参与共建
-如果您对这个项目感兴趣，欢迎提`pull request`参与贡献，也欢迎 `Star` 支持一下 ^_^
+## 🤝 参与共建
+
+如果您对这个项目感兴趣，欢迎提[pull request](https://github.com/micro-zoe/micro-app-chrome-plugin/pulls)参与贡献，也欢迎 [Star](https://github.com/micro-zoe/micro-app-chrome-plugin) 支持一下 ^_^
+欢迎小伙伴们加入`micro-app-chrome-plugin`微信群交流^ ^
+![image](https://img12.360buyimg.com/imagetools/jfs/t1/29962/13/20207/70265/646c9851Fe104e7c1/fed2ab97e2cf5f29.png)
+
 
 
