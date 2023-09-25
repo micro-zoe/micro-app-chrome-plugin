@@ -18,7 +18,7 @@
 # 功能
 打开控制台，选中`Micro app`
 
-## Environment环境
+## 1、Environment环境
 
 可查看`Micro app`的`Environment`环境如下
 
@@ -32,7 +32,7 @@
 
 ![控制台](https://m.360buyimg.com/babel/jfs/t1/92170/34/45320/165007/650c20d5F5db8671a/7472d637694733c6.png)
 
-## Communicate通讯
+## 2、Communicate通讯
 查看父子应用通讯
 数据通信面板
 
