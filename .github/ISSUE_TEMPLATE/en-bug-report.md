@@ -21,7 +21,9 @@ assignees: ''
 > Please provide a condensed code repository and upload it to your own github to help us reproduce your problem.
 
 ## Environment
-- micro-app version:
+- micro-app-chrome-plugin version:
 - framework of base app & version:
 - framework of sub app & version:
+- framework of base app url:
+- framework of sub app url:
 - Build tools & version:
