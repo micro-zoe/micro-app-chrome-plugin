@@ -11,7 +11,7 @@
 
 # 如何使用
 
-在chrome中输入[chrome://extensions](chrome://extensions)打开扩展程序，下载[插件地址](https://github.com/micro-zoe/micro-app-chrome-plugin/raw/master/micro-app-chrome-plugin.zip)，（提示：无需解压），将已下载的插件拖入。
+在chrome中输入`chrome://extensions`打开扩展程序，下载[插件地址](https://github.com/micro-zoe/micro-app-chrome-plugin/raw/master/micro-app-chrome-plugin.zip)，（提示：无需解压），将已下载的插件拖入。
 
 ![扩展程序](https://img12.360buyimg.com/imagetools/jfs/t1/119438/16/38287/53001/646b50e3F9012f2e8/3bba9844bbb1431b.png)
 
