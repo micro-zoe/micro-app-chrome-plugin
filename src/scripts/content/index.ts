@@ -97,7 +97,7 @@ const getMap = (faLevel = '0') => {
       topMap[key] = curItem;
       topMap[faLevel]?.children.push(curItem);
       // 大于0，说明body内部还有body， 说明内部有嵌套，需要继续寻找
-      if (item && hasChild(item.getElementsByTagName('micro-app-body')[0])) {
+      if (item && (hasChild(item.getElementsByTagName('micro-app-body')[0]))) {
         getChildMap(item, key);
       }
     }
