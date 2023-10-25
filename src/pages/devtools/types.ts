@@ -17,3 +17,9 @@ export interface DevToolsMicroAppInfo {
 export interface DevToolsInfo {
   currentMicroApp?: DevToolsMicroAppInfo;
 }
+
+export interface MicroAppsInfos {
+  title: string;
+  key: string;
+  children: MicroAppsInfos[];
+}

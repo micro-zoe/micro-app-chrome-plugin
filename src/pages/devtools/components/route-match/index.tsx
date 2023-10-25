@@ -1,18 +1,13 @@
-import { Alert, Input, Space } from 'antd';
+import { DownOutlined } from '@ant-design/icons';
+import { Alert, Modal, Space, Tree } from 'antd';
 import React from 'react';
-import { CopyToClipboard } from 'react-copy-to-clipboard';
 
-import { DevToolsInfo } from '../../types';
+import { DevToolsInfo, MicroAppsInfos } from '../../types';
 
 import styles from './index.module.less';
 
 interface RouteProps {
   info: DevToolsInfo;
-}
-
-interface microAppProps {
-  appUrl: string;
-  baseURI: string;
 }
 
 interface RouteState {
@@ -31,7 +26,9 @@ interface RouteState {
   hash: string | null;
   baseRoute: string | undefined;
   isDecodeBaseUrl: string;
-  microAppsInfo: microAppProps[];
+  microAppsInfo: MicroAppsInfos[];
+  urlArray: [];
+  nameArray: [];
 }
 
 class Route extends React.PureComponent<RouteProps, RouteState> {
@@ -52,7 +49,40 @@ class Route extends React.PureComponent<RouteProps, RouteState> {
     baseRoute: '',
     isDecodeBaseUrl: '',
     microAppsInfo: [],
+    urlArray: [],
+    nameArray: [],
   };
+
+  public componentDidMount(): void {
+    this.getSubApp1();
+    this.getSubApp2();
+    this.getMicroApps();
+  }
+
+  public getMicroApps() {
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      if (tabs[0]?.id) {
+        const tabId = tabs[0].id;
+        chrome.tabs.executeScript(tabId, { file: 'content.js' }, () => {
+          chrome.tabs.sendMessage(
+            tabId,
+            { action: 'devtoolsMicroApp' },
+            (response) => {
+              const data = JSON.parse(response);
+              const dataTree = data.children;
+              this.setState({
+                microAppsInfo: [...dataTree],
+              }, () => {
+                // Modal.warning({ title: response });
+              });
+            },
+          );
+        });
+      } else {
+        console.error('id error。');
+      }
+    });
+  }
 
   /**
    * click get parent app data
@@ -160,7 +190,17 @@ class Route extends React.PureComponent<RouteProps, RouteState> {
   }
 
   public render() {
-    const { appUrl1, appUrl2, appUrl3, urlOrigin1, urlOrigin2, urlOrigin3, subAppUrl1, subAppUrl2, subAppUrl3 } = this.state;
+    const { baseURI,
+      microAppsInfo } = this.state;
+    const treeData = [
+      {
+        title: `baseURI: ${baseURI}`,
+        key: '0',
+        children: microAppsInfo,
+      },
+    ];
+    console.log(treeData, '-------microAppsInfo');
+
     return (
       <div style={{ display: 'flex', width: 2600 }}>
         <div className={styles.container}>
@@ -172,136 +212,13 @@ class Route extends React.PureComponent<RouteProps, RouteState> {
                 closable
               />
             </Space>
-            <button
-              className={styles.btn}
-              type="button"
-              onClick={() => { this.getSubApp1(); this.getSubApp2(); }}
-            >
-              查看子应用URL
-            </button>
-            <Input
-              placeholder="Sub-APP URL"
-              style={{ width: 800, height: 30, overflow: 'hidden', marginLeft: 20, marginTop: 20 }}
-              value={this.handleUrl(urlOrigin1, appUrl1, subAppUrl1) || ''}
-            />
-            <CopyToClipboard
-              text={this.handleUrl(urlOrigin1, appUrl1, subAppUrl1) || ''}
-            >
-              <button
-                style={{
-                  backgroundColor: '#00bfff',
-                  width: 80,
-                  height: 30,
-                  marginLeft: 20,
-                  marginTop: 20,
-                  borderRadius: 5,
-                  borderColor: ' #00bfff',
-                }}
-                type="button"
-              >
-                复制
-              </button>
-            </CopyToClipboard>
-            <button
-              style={{
-                backgroundColor: '#00bfff',
-                width: 80,
-                height: 30,
-                marginLeft: 20,
-                marginTop: 20,
-                borderRadius: 5,
-                borderColor: ' #00bfff',
-              }}
-              type="button"
-              onClick={() => { this.openNewWindow(urlOrigin1, appUrl1, subAppUrl1); }}
-            >
-              打开
-            </button>
           </div>
-          { appUrl2 && (
-          <div>
-            <Input
-              placeholder="Sub-APP URL"
-              style={{ width: 800, height: 30, overflow: 'hidden', marginLeft: 220, marginTop: 20 }}
-              value={this.handleUrl(urlOrigin2, appUrl2, subAppUrl2) || ''}
-            />
-            <CopyToClipboard
-              text={this.handleUrl(urlOrigin2, appUrl2, subAppUrl2) || ''}
-            >
-              <button
-                style={{
-                  backgroundColor: '#00bfff',
-                  width: 80,
-                  height: 30,
-                  marginLeft: 20,
-                  marginTop: 20,
-                  borderRadius: 5,
-                  borderColor: ' #00bfff',
-                }}
-                type="button"
-              >
-                复制
-              </button>
-            </CopyToClipboard>
-            <button
-              style={{
-                backgroundColor: '#00bfff',
-                width: 80,
-                height: 30,
-                marginLeft: 20,
-                marginTop: 20,
-                borderRadius: 5,
-                borderColor: ' #00bfff',
-              }}
-              type="button"
-              onClick={() => { this.openNewWindow(urlOrigin2, appUrl2, subAppUrl2); }}
-            >
-              打开
-            </button>
-          </div>
-          ) }
-          { appUrl3 && (
-          <div>
-            <Input
-              placeholder="Sub-APP URL"
-              style={{ width: 800, height: 30, overflow: 'hidden', marginLeft: 220, marginTop: 20 }}
-              value={this.handleUrl(urlOrigin3, appUrl3, subAppUrl3) || ''}
-            />
-            <CopyToClipboard
-              text={this.handleUrl(urlOrigin3, appUrl3, subAppUrl3) || ''}
-            >
-              <button
-                style={{
-                  backgroundColor: '#00bfff',
-                  width: 80,
-                  height: 30,
-                  marginLeft: 20,
-                  marginTop: 20,
-                  borderRadius: 5,
-                  borderColor: ' #00bfff',
-                }}
-                type="button"
-              >
-                复制
-              </button>
-            </CopyToClipboard>
-            <button
-              style={{
-                backgroundColor: '#00bfff',
-                width: 80,
-                height: 30,
-                marginLeft: 20,
-                marginTop: 20,
-                borderRadius: 5,
-                borderColor: ' #00bfff',
-              }}
-              type="button"
-              onClick={() => { this.openNewWindow(urlOrigin3, appUrl3, subAppUrl3); }}
-            >
-              打开
-            </button>
-          </div>
-          ) }
+          <Tree
+            showLine
+            switcherIcon={<DownOutlined />}
+            defaultExpandedKeys={['0-0-0']}
+            treeData={treeData}
+          />
         </div>
       </div>
     );

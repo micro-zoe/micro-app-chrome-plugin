@@ -39,7 +39,7 @@ class DevToolsPage extends React.PureComponent<DevToolsPageProps, DevToolsPageSt
   }
 
   private updateColorTheme() {
-    console.log('chrome.devtools.panels', chrome.devtools.panels);
+    // console.log('chrome.devtools.panels', chrome.devtools.panels);
     if (chrome.devtools.panels.themeName === 'dark') {
       window.document.documentElement.style.setProperty('--color-border-primary', '#494c50');
       window.document.documentElement.style.setProperty('--color-text-primary', '#ffffff');
