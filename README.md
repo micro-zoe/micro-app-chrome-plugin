@@ -64,7 +64,8 @@
 
 #### 快捷打开方式二
 点击鼠标右键，选择micro-app下，二级菜单点子应用开发环境模拟
-![快捷方式](https://m.360buyimg.com/babel/jfs/t1/172993/25/37523/30273/64a6384eF736c8180/59fa4375248f460f.png)
+
+![快捷方式](https://github.com/micro-zoe/micro-app-chrome-plugin/assets/14011130/91b40f7c-a826-4ffe-8c20-0b43a5c3bc6f)
 
 ## 3、View子应用视图
 查看子应用相关视图信息
