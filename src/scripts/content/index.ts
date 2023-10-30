@@ -32,73 +32,6 @@ printLine("Using the 'printLine' function from the Print Module");
   return filteredMicroApps;
 }
 
-function arraysAreEqual(arr1: string | any[], arr2: string | any[]) {
-  // 检查数组长度是否相同
-  if (arr1.length !== arr2.length) {
-    return false;
-  }
-
-  // 遍历数组元素
-  for (let i = 0; i < arr1.length; i++) {
-    const item1 = arr1[i];
-    const item2 = arr2[i];
-
-    // 如果元素是数组，则递归比较
-    if (Array.isArray(item1) && Array.isArray(item2)) {
-      if (!arraysAreEqual(item1, item2)) {
-        return false;
-      }
-    }
-    // 如果元素是对象，则递归比较
-    else if (typeof item1 === 'object' && typeof item2 === 'object') {
-      if (!objectsAreEqual(item1, item2)) {
-        return false;
-      }
-    }
-    // 比较基本类型元素
-    else if (item1 !== item2) {
-      return false;
-    }
-  }
-
-  return true;
-}
-
-function objectsAreEqual(obj1: { [x: string]: any; }, obj2: { [x: string]: any; }) {
-  const keys1 = Object.keys(obj1);
-  const keys2 = Object.keys(obj2);
-
-  // 检查对象键的数量是否相同
-  if (keys1.length !== keys2.length) {
-    return false;
-  }
-
-  // 遍历对象键
-  for (let key of keys1) {
-    const val1 = obj1[key];
-    const val2 = obj2[key];
-
-    // 如果值是数组，则递归比较
-    if (Array.isArray(val1) && Array.isArray(val2)) {
-      if (!arraysAreEqual(val1, val2)) {
-        return false;
-      }
-    }
-    // 如果值是对象，则递归比较
-    else if (typeof val1 === 'object' && typeof val2 === 'object') {
-      if (!objectsAreEqual(val1, val2)) {
-        return false;
-      }
-    }
-    // 比较基本类型值
-    else if (val1 !== val2) {
-      return false;
-    }
-  }
-
-  return true;
-}
-
 // 找出DOM元素数组中的最顶层元素
 function findTopLevelElements(elements: any) {
   const topLevelElements = [];
@@ -201,7 +134,6 @@ const getMap = (faLevel = '0') => {
       if (item && (hasChild(item.getElementsByTagName('micro-app-body')[0]))) {
         getChildMap(item, key);
       }
-      console.log(topMap['0'], '=======111111')
     }
   }
 };
