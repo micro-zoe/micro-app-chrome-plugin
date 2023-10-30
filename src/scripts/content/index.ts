@@ -71,6 +71,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (microApp) {
       if (request.action === 'openView') {
         (microApp as HTMLElement).style.border = '2px solid red';
+        (microApp as HTMLElement).style.display = 'block';
       } else if (request.action === 'closeView') {
         (microApp as HTMLElement).style.border = '0px';
       }
