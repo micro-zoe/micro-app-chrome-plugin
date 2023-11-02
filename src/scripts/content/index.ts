@@ -67,13 +67,28 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (microApps === null) {
     return;
   }
-  microApps.forEach((microApp) => {
+  const colors = ['red', 'orange', 'yellow', 'green', 'blue', 'indigo', 'violet'];
+  microApps.forEach((microApp, index) => {
     if (microApp) {
       if (request.action === 'openView') {
-        (microApp as HTMLElement).style.border = '2px solid red';
+        (microApp as HTMLElement).style.border = `2px solid ${colors[index % colors.length]}`;
         (microApp as HTMLElement).style.display = 'block';
+        // add transform is because some border colors cannot be displayed
+        (microApp as HTMLElement).style.transformOrigin = 'center';
+        (microApp as HTMLElement).style.transform = 'rotate(360deg)';
+        const originalDisplay = (microApp as HTMLElement).style.display;
+        // fix some parent div setting display: contents cause border colors cannot be displayed
+        (microApp as HTMLElement).style.display = 'block';
+        (microApp as HTMLElement).dataset.originalDisplay = originalDisplay;
       } else if (request.action === 'closeView') {
         (microApp as HTMLElement).style.border = '0px';
+        (microApp as HTMLElement).style.padding = '0px';
+        (microApp as HTMLElement).style.transform = 'none';
+        const originalDisplay = (microApp as HTMLElement).dataset.originalDisplay;
+        if (originalDisplay) {
+          (microApp as HTMLElement).style.display = originalDisplay;
+          delete (microApp as HTMLElement).dataset.originalDisplay;
+        }
       }
     }
   });
