@@ -8,12 +8,12 @@ import Console from './components/console-log';
 import HeaderTabs from './components/header-tabs';
 import MicroAppEnv from './components/micro-app-env';
 import Route from './components/route-match';
-import { HEADER_TAB_LIST, MICRO_APP_ENV_LIST } from './config';
+import { HEADER_TAB_LIST } from './config';
 import { DevToolsInfo, DevToolsMicroAppInfo } from './types';
 
 import styles from './index.module.less';
 
-interface DevToolsPageProps {}
+interface DevToolsPageProps { }
 
 interface DevToolsPageState {
   activeTab: string;
@@ -28,7 +28,17 @@ class DevToolsPage extends React.PureComponent<DevToolsPageProps, DevToolsPageSt
 
   private updateInfo() {
     chrome.devtools.inspectedWindow.eval(
-      `JSON.stringify({${MICRO_APP_ENV_LIST.map(p => `[${JSON.stringify(p.name)}]: ${p.eval}`).join(',')}})`,
+      `JSON.stringify(function (){
+        const thisWindow = window.__MICRO_APP_PROXY_WINDOW__ || window;
+        const allKey = JSON.stringify(Object.keys(thisWindow));
+        let microAppInfo = {};
+        for (let el of JSON.parse(allKey)){
+          if (el.indexOf('__MICRO_APP') > -1){
+            microAppInfo[el] = thisWindow[el];
+          }
+        }
+        return microAppInfo;
+      }())`,
       (res: string) => {
         const env = decodeJSON<DevToolsMicroAppInfo['env']>(res);
         if (env) {
@@ -39,7 +49,6 @@ class DevToolsPage extends React.PureComponent<DevToolsPageProps, DevToolsPageSt
   }
 
   private updateColorTheme() {
-    console.log('chrome.devtools.panels', chrome.devtools.panels);
     if (chrome.devtools.panels.themeName === 'dark') {
       window.document.documentElement.style.setProperty('--color-border-primary', '#494c50');
       window.document.documentElement.style.setProperty('--color-text-primary', '#ffffff');
@@ -92,7 +101,7 @@ class DevToolsPage extends React.PureComponent<DevToolsPageProps, DevToolsPageSt
     return (
       <div className={styles.container}>
         <HeaderTabs value={this.state.activeTab} onChange={(value) => { this.setState({ activeTab: value }); }} />
-        { this.renderContent() }
+        {this.renderContent()}
       </div>
     );
   }
