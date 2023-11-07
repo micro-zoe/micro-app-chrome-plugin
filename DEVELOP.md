@@ -38,6 +38,20 @@
 
 3. found `dist.crx` change to `dist.zip`
 
+## How to make a release
+
+1. Open [https://github.com/micro-zoe/micro-app-chrome-plugin/releases](https://github.com/micro-zoe/micro-app-chrome-plugin/releases), click "Draft a new release" button.
+
+2. Choose a tag or create a new tag. The versioning follows the [Semantic Versioning 2.0.0](https://semver.org/) specification for semantic versioning.
+
+3. Fill in the version number as the title. Include the update details in the description.
+
+4. Upload the artifacts of the current version as attachments.
+
+5. Publish release.
+
+6. Modify the download link in README.md to an attachment link.
+
 ## Tips
 
 For WSL users, here's a trick you can develop in a linux sub system with hot reload, and preview in windows host system `Chrome` application:
