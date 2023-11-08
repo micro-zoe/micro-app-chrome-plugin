@@ -1,5 +1,5 @@
 {
-  "manifest_version": 2,
+  "manifest_version": 3,
   "name": "Micro App Developer Tools",
   "short_name": "Sample Extension",
   "description": "A chrome extension for debug micro app project.",
@@ -29,12 +29,13 @@
   "host_permissions": [
     "*://*.jd.com/"
   ],
+  "optional_host_permissions": [
+    "*://*/*"
+  ],
   "permissions": [
     "cookies",
     "webRequest",
     "webRequestBlocking",
-    "http://*/*",
-    "https://*/*",
     "tabs",
     "contextMenus",
     "browser_action",
