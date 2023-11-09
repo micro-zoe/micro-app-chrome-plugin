@@ -15,7 +15,7 @@ const Route: React.FC<RouteProps> = (props) => {
   const [microAppsInfo, setMicroAppsInfo] = React.useState<MicroAppsInfos[]>();
   const [treeData, setTreeData] = React.useState([
     {
-      title: `baseURI: ${baseURI}`,
+      title: `${baseURI}`,
       key: '0',
       children: microAppsInfo,
     },
@@ -94,6 +94,7 @@ const Route: React.FC<RouteProps> = (props) => {
           switcherIcon={<DownOutlined />}
           defaultExpandedKeys={['0-0-0']}
           treeData={treeData}
+          onSelect={onSelect}
         />
       </div>
     </div>
