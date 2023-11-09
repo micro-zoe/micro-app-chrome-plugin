@@ -10,16 +10,10 @@ interface RouteProps {
   info: DevToolsInfo;
 }
 
-interface microAppProps {
-  appUrl: string;
-  baseURI: string;
-}
-
 interface RouteState {
   appUrl1: string;
   appUrl2: string;
   appUrl3: string;
-  baseURI: string;
   urlOrigin1: string | null;
   urlOrigin2: string | null;
   urlOrigin3: string | null;
@@ -31,7 +25,6 @@ interface RouteState {
   hash: string | null;
   baseRoute: string | undefined;
   isDecodeBaseUrl: string;
-  microAppsInfo: microAppProps[];
 }
 
 class Route extends React.PureComponent<RouteProps, RouteState> {
@@ -39,7 +32,6 @@ class Route extends React.PureComponent<RouteProps, RouteState> {
     appUrl1: '',
     appUrl2: '',
     appUrl3: '',
-    baseURI: '',
     urlOrigin1: '',
     urlOrigin2: '',
     urlOrigin3: '',
@@ -51,7 +43,6 @@ class Route extends React.PureComponent<RouteProps, RouteState> {
     hash: '',
     baseRoute: '',
     isDecodeBaseUrl: '',
-    microAppsInfo: [],
   };
 
   /**
@@ -63,7 +54,7 @@ class Route extends React.PureComponent<RouteProps, RouteState> {
       (res: string) => {
         if (res) {
           const subApp1 = res;
-          const regex1 = /^(https?:\/\/[^/]+)/im;
+          const regex1 = /^(https?:\/\/[^/]+)/uim;
           const match1 = res?.match(regex1);
           this.setState({ appUrl1: subApp1, urlOrigin1: match1 && match1[1], subAppUrl1: res, appUrl2: '', appUrl3: '' });
           this.getBaseURI();
@@ -81,7 +72,7 @@ class Route extends React.PureComponent<RouteProps, RouteState> {
       (res: string) => {
         if (res) {
           const subApp2 = res;
-          const regex1 = /^(https?:\/\/[^/]+)/im;
+          const regex1 = /^(https?:\/\/[^/]+)/uim;
           const match1 = res?.match(regex1);
           this.setState({ appUrl2: subApp2, urlOrigin2: match1 && match1[1], subAppUrl2: res, appUrl3: '' });
           this.getBaseURI();
@@ -100,7 +91,7 @@ class Route extends React.PureComponent<RouteProps, RouteState> {
       (res: string) => {
         if (res) {
           const subApp3 = res;
-          const regex1 = /^(https?:\/\/[^/]+)/im;
+          const regex1 = /^(https?:\/\/[^/]+)/uim;
           const match1 = res?.match(regex1);
           this.setState({ appUrl3: subApp3, urlOrigin2: match1 && match1[1], subAppUrl3: res });
           this.getBaseURI();
@@ -118,7 +109,7 @@ class Route extends React.PureComponent<RouteProps, RouteState> {
       (res: string) => {
         if (res) {
           // 匹配父应用的pathname、search和hash
-          const regex = /^(?:https?:\/\/[^/]+)?(\/[^#?]*)?(\?[^#]*)?(#.*)?$/;
+          const regex = /^(?:https?:\/\/[^/]+)?(\/[^#?]*)?(\?[^#]*)?(#.*)?$/u;
           const match = res?.match(regex);
           if (res.includes('%2F') || res.includes('%3F') || res.includes('%3D') || res.includes('%3A')) {
             const decodedURL = JSON.parse(decodeURIComponent(JSON.stringify(res)));
@@ -133,7 +124,6 @@ class Route extends React.PureComponent<RouteProps, RouteState> {
           } else {
             this.setState({
               isDecodeBaseUrl: res.includes('#') ? '#'.concat(res.split('#')[1]) : '',
-              baseURI: res,
               pathname: match && match[1],
               search: match && match[2],
               hash: match && match[3],

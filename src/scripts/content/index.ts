@@ -37,24 +37,6 @@ setTimeout(() => {
     updateIcon: filterMicroApps(),
   });
   microApps = filterMicroApps();
-  // (microApp as HTMLElement).style.border = '2px solid red';
-
-  // // setting button
-  // button.textContent = '关闭子应用范围';
-  // button.style.position = 'fixed';
-  // button.style.bottom = '20px';
-  // button.style.right = '20px';
-  // button.style.backgroundColor = 'blue';
-  // button.style.color = 'white';
-  // button.style.border = 'none';
-  // button.style.padding = '10px';
-  // button.style.borderRadius = '5%';
-  // button.style.boxShadow = '0 0 10px rgba(0, 0, 0, 0.5)';
-
-  /*
-   * document.body.append(button);
-   * button.style.display = 'none';
-   */
 }, 2000);
 
 // get msg and setting button or microApp
