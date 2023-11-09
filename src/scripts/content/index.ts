@@ -158,7 +158,7 @@ const getChildMap = (childItem: Element, faLevel = '0') => {
         const key = `${faLevel}-${index}`;
         const curItem = {
           key,
-          title: `${item.getAttribute('name')}:${handleUrl(item.getAttribute('url'), item.getAttribute('baseroute'))}`,
+          title: `${handleUrl(item.getAttribute('url'), item.getAttribute('baseroute'))}`,
           children: [],
         };
         topMap[key] = curItem;
@@ -179,7 +179,7 @@ const getMap = (faLevel = '0') => {
       const key = `${faLevel}-${index}`;
       const curItem = {
         key,
-        title: `${item.getAttribute('name')}:${handleUrl(item.getAttribute('url'), item.getAttribute('baseroute'))}`,
+        title: `${handleUrl(item.getAttribute('url'), item.getAttribute('baseroute'))}`,
         children: [],
       };
       topMap[key] = curItem;

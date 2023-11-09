@@ -66,6 +66,11 @@ const Route: React.FC<RouteProps> = (props) => {
     });
   };
 
+  const onSelect = (keys: unknown, info: { node: { title: string | URL | undefined } }) => {
+    console.log('Trigger Select', keys, info);
+    window.open(info.node.title);
+  };
+
   useEffect(() => {
     getBaseURI();
     getMicroApps();
