@@ -38,6 +38,19 @@
 
 3. found `dist.crx` change to `dist.zip`
 
+## How to fix a bug
+
+1. Open the relevant issue and create a branch in the "Development" sidebar. Please use only English for the branch name and avoid using Chinese.
+
+2. Perform bug fixes on this branch.
+
+3. When committing the code, include a comment in the commit message with the text "fixed #(issue number)" to reference the related issue.
+
+4. This issue will be automatically closed.
+
+5. Create a pull request with a title that includes "Fixed #(issue number)". This pull request will be automatically linked to the corresponding issue.
+
+
 ## Tips
 
 For WSL users, here's a trick you can develop in a linux sub system with hot reload, and preview in windows host system `Chrome` application:
