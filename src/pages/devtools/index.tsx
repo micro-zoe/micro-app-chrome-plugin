@@ -30,7 +30,7 @@ class DevToolsPage extends React.PureComponent<DevToolsPageProps, DevToolsPageSt
     chrome.devtools.inspectedWindow.eval(
       `JSON.stringify({${MICRO_APP_ENV_LIST.map(p => `[${JSON.stringify(p.name)}]: ${p.eval}`).join(',')}})`,
       (res: string) => {
-        const env = decodeJSON(res);
+        const env = decodeJSON<DevToolsMicroAppInfo['env']>(res);
         if (env) {
           this.setState({ info: { currentMicroApp: { env } } });
         }
