@@ -1,3 +1,4 @@
+import { decodeJSON } from '@/utils/json';
 import * as logger from '@/utils/logger';
 
 import { printLine } from './modules/print';
@@ -18,7 +19,7 @@ printLine("Using the 'printLine' function from the Print Module");
  *     - micro-app-xxx且不是micro-app-head或者micro-app-body，可以多个，递归
  */
 
- function filterMicroApps(dom: any) {
+function filterMicroApps(dom: any) {
   const microApps = dom;
   const filteredMicroApps = [];
   for (const microApp of microApps) {
@@ -32,14 +33,66 @@ printLine("Using the 'printLine' function from the Print Module");
   return filteredMicroApps;
 }
 
+const DEC_AD_RE = /%M1/g; // &
+const DEC_EQ_RE = /%M2/g; // =
+
+// Recursively resolve address
+function commonDecode(path: string): string {
+  try {
+    const decPath = decodeURIComponent(path);
+    if (path === decPath || DEC_AD_RE.test(decPath) || DEC_EQ_RE.test(decPath)) { return decPath; }
+    return commonDecode(decPath);
+  } catch {
+    return path;
+  }
+}
+
+// decode path
+export function decodeMicroPath(path: string): string {
+  return commonDecode(path).replace(DEC_AD_RE, '&').replace(DEC_EQ_RE, '=');
+}
+function handleUrl(
+  subAppUrl: string, /* 子应用url */
+  baseRoute: string, /* baseRoute */
+) {
+  const regex1 = /^(https?:\/\/[^/]+)/im;
+  const regex = /^(?:https?:\/\/[^/]+)?(\/[^#?]*)?(\?[^#]*)?(#.*)?$/;
+  const urlOrigin = subAppUrl?.match(regex1);
+  const baseUrl = window.location.href;
+  const decodedURL = baseUrl.includes('%2F')
+  || baseUrl.includes('%3F')
+  || baseUrl.includes('%3D')
+  || baseUrl.includes('%3A')
+    ? decodeMicroPath(baseUrl)
+    : baseUrl;
+  const pathname = decodedURL.match(regex)[1];
+  const search = decodedURL.match(regex)[2];
+  const hash = decodedURL.match(regex)[3];
+  const isDecodeBaseUrl = decodedURL.includes('#')
+    ? '#'.concat(decodedURL.split('#')[1])
+    : '';
+  const locationString = [urlOrigin, baseRoute, pathname, search, hash];
+  const uniqueArray = locationString.filter(
+    (value, index, self) => self.indexOf(value) === index,
+  );
+  const result = baseRoute ? uniqueArray.join('') : subAppUrl;
+  const handleResult = JSON.stringify(
+    isDecodeBaseUrl ? subAppUrl?.concat(hash) : result,
+  );
+  const subAppLink = handleResult.includes('undefined')
+    ? handleResult.replace('undefined', '')
+    : JSON.parse(handleResult);
+  return subAppLink;
+}
+
 // 找出DOM元素数组中的最顶层元素
 function findTopLevelElements(elements: any) {
   const topLevelElements = [];
   for (let i = 0; i < elements.length; i++) {
     const element = elements[i];
     let isTopLevel = true;
-    for (let j = 0; j < elements.length; j++) {
-      if (i !== j && elements[j].contains(element)) {
+    for (const [j, element_] of elements.entries()) {
+      if (i !== j && element_.contains(element)) {
         isTopLevel = false;
         break;
       }
@@ -52,30 +105,36 @@ function findTopLevelElements(elements: any) {
 }
 
 // 第一步：获取最顶层父级
-const topFather = window.location.href;
+const fatherUrl = window.location.href;
+const topFather = fatherUrl.includes('%2F')
+|| fatherUrl.includes('%3F')
+|| fatherUrl.includes('%3D')
+|| fatherUrl.includes('%3A')
+  ? decodeMicroPath(fatherUrl)
+  : fatherUrl;
 
-// 第二步：获取父级micro-app
-// const allMicroApp = filterMicroApps(document.querySelectorAll('*'));
-// const topFather_1_el_maps = findTopLevelElements(allMicroApp);
-// 核心-开始递归寻址子级
+/*
+ * 第二步：获取父级micro-app
+ * const allMicroApp = filterMicroApps(document.querySelectorAll('*'));
+ * const topFather_1_el_maps = findTopLevelElements(allMicroApp);
+ * 核心-开始递归寻址子级
+ */
 const topInitEntry = {
-  // currentLevel: 0,
   key: '0',
-  // name: topFather,
   title: topFather,
-  // tag: 'document',
-  // element: document,
   children: [],
 };
 const topMap = { 0: topInitEntry };
 
 // 工具-是否还有子集
-const hasChild = (context: Element) => context.getElementsByTagName('micro-app-body').length > 0;
+const hasChild = (context: Element) => context.querySelectorAll('micro-app-body').length > 0;
 
 // 工具-找出最近的子集的DOM
 function getChildByDomRegex(citem) {
-  // 多层嵌套时，子集标签格式：micro-app-XXX,但是不能包含['micro-app-head',"micro-app-body"]【 https://micro-zoe.github.io/micro-app/docs.html#/zh-cn/nest 】
-  // const child_regex = /^(micro-app-).+(?<!(head|body))$/;
+  /*
+   * 多层嵌套时，子集标签格式：micro-app-XXX,但是不能包含['micro-app-head',"micro-app-body"]【 https://micro-zoe.github.io/micro-app/docs.html#/zh-cn/nest 】
+   * const child_regex = /^(micro-app-).+(?<!(head|body))$/;
+   */
   const itemChildrens = citem.querySelectorAll('*');
   const output = [];
   for (const i of itemChildrens) {
@@ -91,20 +150,20 @@ function getChildByDomRegex(citem) {
 
 // 深化：子集递归查找
 const getChildMap = (childItem: Element, faLevel = '0') => {
-  const fa_maps = childItem.getElementsByTagName('micro-app-body');
+  const fa_maps = childItem.querySelectorAll('micro-app-body');
   if (fa_maps && fa_maps.length > 0) {
-    for (let index = 0; index < fa_maps.length; index++) {
-      if (hasChild(fa_maps[index])) {
-        const item = getChildByDomRegex(fa_maps[index]);
+    for (const [index, fa_map] of fa_maps.entries()) {
+      if (hasChild(fa_map)) {
+        const item = getChildByDomRegex(fa_map);
         const key = `${faLevel}-${index}`;
         const curItem = {
           key,
-          title: `${item.getAttribute('name')}:${item.getAttribute('url')}`,
+          title: `${item.getAttribute('name')}:${handleUrl(item.getAttribute('url'), item.getAttribute('baseroute'))}`,
           children: [],
         };
         topMap[key] = curItem;
         topMap[faLevel]?.children.push(curItem);
-        if (item && hasChild(item.getElementsByTagName('micro-app-body')[0])) {
+        if (item && hasChild(item.querySelectorAll('micro-app-body')[0])) {
           getChildMap(item, key);
         }
       }
@@ -116,22 +175,17 @@ const getChildMap = (childItem: Element, faLevel = '0') => {
 const getMap = (faLevel = '0') => {
   const topFather_1_el_maps = findTopLevelElements(microApps);
   if (topFather_1_el_maps && topFather_1_el_maps.length > 0) {
-    for (let index = 0; index < topFather_1_el_maps.length; index++) {
-      const item = topFather_1_el_maps[index];
+    for (const [index, item] of topFather_1_el_maps.entries()) {
       const key = `${faLevel}-${index}`;
       const curItem = {
-        // currentLevel: index,
         key,
-        // name: item.getAttribute('name'),
-        title: item.getAttribute('name') + ':' + item.getAttribute('url'),
-        // tag: item.tagName.toLowerCase(),
-        // element: item,
+        title: `${item.getAttribute('name')}:${handleUrl(item.getAttribute('url'), item.getAttribute('baseroute'))}`,
         children: [],
       };
       topMap[key] = curItem;
       topMap[faLevel]?.children.push(curItem);
       // 大于0，说明body内部还有body， 说明内部有嵌套，需要继续寻找
-      if (item && (hasChild(item.getElementsByTagName('micro-app-body')[0]))) {
+      if (item && hasChild(item.querySelectorAll('micro-app-body')[0])) {
         getChildMap(item, key);
       }
     }
@@ -154,24 +208,6 @@ setTimeout(() => {
     updateIcon: filterMicroApps(document.querySelectorAll('*')),
   });
   microApps = filterMicroApps(document.querySelectorAll('*'));
-  // (microApp as HTMLElement).style.border = '2px solid red';
-
-  // // setting button
-  // button.textContent = '关闭子应用范围';
-  // button.style.position = 'fixed';
-  // button.style.bottom = '20px';
-  // button.style.right = '20px';
-  // button.style.backgroundColor = 'blue';
-  // button.style.color = 'white';
-  // button.style.border = 'none';
-  // button.style.padding = '10px';
-  // button.style.borderRadius = '5%';
-  // button.style.boxShadow = '0 0 10px rgba(0, 0, 0, 0.5)';
-
-  /*
-   * document.body.append(button);
-   * button.style.display = 'none';
-   */
 }, 2000);
 
 // get msg and setting button or microApp
