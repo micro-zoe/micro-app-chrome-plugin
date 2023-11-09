@@ -50,6 +50,8 @@
 
 5. Create a pull request with a title that includes "Fixed #(issue number)". This pull request will be automatically linked to the corresponding issue.
 
+6. Wait for the reviewers to review the code. Once the code review is approved, the code will be automatically merged into the branch.
+
 
 ## Tips
 
