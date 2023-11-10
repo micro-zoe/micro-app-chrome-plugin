@@ -66,8 +66,12 @@ const Route: React.FC<RouteProps> = (props) => {
     });
   };
 
+  chrome.devtools.network.onNavigated.addListener((details) => {
+    // 处理路由变化的逻辑
+    getMicroApps();
+  });
+
   const onSelect = (keys: unknown, info: { node: { title: string | URL | undefined } }) => {
-    console.log('Trigger Select', keys, info);
     window.open(info.node.title);
   };
 
@@ -104,6 +108,10 @@ const Route: React.FC<RouteProps> = (props) => {
               ignoreCache: true,
               injectedScript: 'alert(刷新路由请切换devtool重新进入路由tab);',
             });
+            // chrome.devtools.network.onNavigated.addListener((details) => {
+            //   // 处理路由变化的逻辑
+            //   getMicroApps();
+            // });
           }}
         >
           刷新

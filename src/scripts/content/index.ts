@@ -119,12 +119,17 @@ const topFather = fatherUrl.includes('%2F')
  * const topFather_1_el_maps = findTopLevelElements(allMicroApp);
  * 核心-开始递归寻址子级
  */
-const topInitEntry = {
+let topInitEntry = {
   key: '0',
   title: topFather,
   children: [],
+
 };
-const topMap = { 0: topInitEntry };
+let topMap = { 0: topInitEntry };
+const initToMap = () => {
+  topInitEntry.children = [];
+  topMap = { 0: topInitEntry };
+};
 
 // 工具-是否还有子集
 const hasChild = (context: Element) => context.querySelectorAll('micro-app-body').length > 0;
@@ -232,10 +237,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'devtoolsMicroApp') {
   // start-天龙八部
     console.log(88888, '得到的顶层树形数据结构为：：：：', topMap['0']);
-    if (Array.isArray(topMap['0'].children) && topMap['0'].children.length === 0) {
-      getMap();
-    }
-    console.log(999999, '得到的顶层树形数据结构为：：：：', topMap['0']);
+    // if (Array.isArray(topMap['0'].children) && topMap['0'].children.length === 0) {
+    initToMap();
+    console.log(666666, '得到的顶层树形数据结构为：：：：', topMap);
+    getMap();
+    // }
+    console.log(999999, '得到的顶层树形数据结构为：：：：', topMap);
     sendResponse(JSON.stringify(topMap['0']));
   }
 });
