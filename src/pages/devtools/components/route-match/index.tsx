@@ -96,6 +96,18 @@ const Route: React.FC<RouteProps> = (props) => {
           treeData={treeData}
           onSelect={onSelect}
         />
+        <button
+          className={styles.btn}
+          type="button"
+          onClick={() => {
+            chrome.devtools.inspectedWindow.reload({
+              ignoreCache: true,
+              injectedScript: 'alert(刷新路由请切换devtool重新进入路由tab);',
+            });
+          }}
+        >
+          刷新
+        </button>
       </div>
     </div>
   );
