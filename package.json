@@ -14,7 +14,9 @@
     "build:development": "node webpack/runner.js build development",
     "build:production": "node webpack/runner.js build production",
     "build:report": "node webpack/runner.js build production --report",
-    "prettier": "prettier --write '**/*.{js,jsx,ts,tsx,json,css,less,scss,sass,md}'"
+    "prettier": "prettier --write '**/*.{js,jsx,ts,tsx,json,css,less,scss,sass,md}'",
+    "lint": "eslint src/",
+    "install-deps": "npm install"
   },
   "dependencies": {
     "@ant-design/icons": "^5.2.3",
