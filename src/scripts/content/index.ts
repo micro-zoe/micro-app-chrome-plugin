@@ -1,4 +1,3 @@
-import { decodeJSON } from '@/utils/json';
 import * as logger from '@/utils/logger';
 
 import { printLine } from './modules/print';
@@ -127,6 +126,13 @@ let topInitEntry = {
 };
 let topMap = { 0: topInitEntry };
 const initToMap = () => {
+  const fatherUrls = window.location.href;
+  topInitEntry.title = fatherUrls.includes('%2F')
+|| fatherUrls.includes('%3F')
+|| fatherUrls.includes('%3D')
+|| fatherUrls.includes('%3A')
+    ? decodeMicroPath(fatherUrls)
+    : fatherUrls;
   topInitEntry.children = [];
   topMap = { 0: topInitEntry };
 };
@@ -235,14 +241,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     }
   });
   if (request.action === 'devtoolsMicroApp') {
-  // start-天龙八部
-    console.log(88888, '得到的顶层树形数据结构为：：：：', topMap['0']);
-    // if (Array.isArray(topMap['0'].children) && topMap['0'].children.length === 0) {
     initToMap();
-    console.log(666666, '得到的顶层树形数据结构为：：：：', topMap);
     getMap();
-    // }
-    console.log(999999, '得到的顶层树形数据结构为：：：：', topMap);
     sendResponse(JSON.stringify(topMap['0']));
   }
 });
