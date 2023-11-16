@@ -46,6 +46,13 @@ function commonDecode(path: string): string {
   }
 }
 
+function fixUrl(url: string) {
+  if (url.startsWith('//')) {
+    url = window.location.protocol + url;
+  }
+  return url;
+}
+
 // decode path
 export function decodeMicroPath(path: string): string {
   return commonDecode(path).replace(DEC_AD_RE, '&').replace(DEC_EQ_RE, '=');
@@ -74,7 +81,8 @@ function handleUrl(
   const uniqueArray = locationString.filter(
     (value, index, self) => self.indexOf(value) === index,
   );
-  const result = baseRoute ? uniqueArray.join('') : subAppUrl;
+  const isChange = subAppUrl.includes(baseRoute);
+  const result = isChange ? uniqueArray.join('') : fixUrl(subAppUrl);
   const handleResult = JSON.stringify(
     isDecodeBaseUrl ? subAppUrl?.concat(hash) : result,
   );
@@ -141,7 +149,7 @@ const initToMap = () => {
 const hasChild = (context: Element) => context.querySelectorAll('micro-app-body').length > 0;
 
 // 工具-找出最近的子集的DOM
-function getChildByDomRegex(citem) {
+function getChildByDomRegex(citem: Element) {
   /*
    * 多层嵌套时，子集标签格式：micro-app-XXX,但是不能包含['micro-app-head',"micro-app-body"]【 https://micro-zoe.github.io/micro-app/docs.html#/zh-cn/nest 】
    * const child_regex = /^(micro-app-).+(?<!(head|body))$/;
