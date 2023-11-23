@@ -3,11 +3,11 @@ import React from 'react';
 import { decodeJSON } from '@/utils/json';
 
 import Communicate from './components/communicate';
-import ViewApp from './components/view-app';
 import Console from './components/console-log';
 import HeaderTabs from './components/header-tabs';
 import MicroAppEnv from './components/micro-app-env';
 import Route from './components/route-match';
+import ViewApp from './components/view-app';
 import { HEADER_TAB_LIST, MICRO_APP_ENV_LIST } from './config';
 import { DevToolsInfo, DevToolsMicroAppInfo } from './types';
 
@@ -39,7 +39,6 @@ class DevToolsPage extends React.PureComponent<DevToolsPageProps, DevToolsPageSt
   }
 
   private updateColorTheme() {
-    console.log('chrome.devtools.panels', chrome.devtools.panels);
     if (chrome.devtools.panels.themeName === 'dark') {
       window.document.documentElement.style.setProperty('--color-border-primary', '#494c50');
       window.document.documentElement.style.setProperty('--color-text-primary', '#ffffff');
@@ -82,7 +81,7 @@ class DevToolsPage extends React.PureComponent<DevToolsPageProps, DevToolsPageSt
       case 'ROUTE_MATCH':
         return <Route info={this.state.info} />;
       case 'CONSOLE':
-        return <Console info={this.state.info} />;
+        return <Console />;
       default:
         return null;
     }

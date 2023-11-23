@@ -23,10 +23,12 @@ export default function openDevToolsWindow(position: DevToolsPosition) {
         if (lastPosition !== position && position !== 'devtools-panel') {
           params = { ...params, ...customOptions };
         }
-        chrome.windows.update(windows[position]!, params, () => {
-          lastPosition = null;
-          if (chrome.runtime.lastError) { callback(); }
-        });
+        if (windows[position]) {
+          chrome.windows.update(windows[position] as number, params, () => {
+            lastPosition = null;
+            if (chrome.runtime.lastError) { callback(); }
+          });
+        }
       }
     }
 
@@ -40,12 +42,14 @@ export default function openDevToolsWindow(position: DevToolsPosition) {
           `${url}#${position.slice(position.indexOf('-') + 1)}`,
         );
         chrome.windows.create(options, (win) => {
-          windows[position] = win!.id;
-          if (navigator.userAgent.includes('Firefox')) {
-            chrome.windows.update(win!.id!, {
-              focused: true,
-              ...customOptions,
-            });
+          if (win) {
+            windows[position] = win.id;
+            if (navigator.userAgent.includes('Firefox')) {
+              chrome.windows.update(win.id as number, {
+                focused: true,
+                ...customOptions,
+              });
+            }
           }
         });
       }
@@ -58,28 +62,5 @@ export default function openDevToolsWindow(position: DevToolsPosition) {
     width: 380,
     height: 400,
   };
-  /*
-   *   let url = 'window.html';
-   *   switch (position) {
-   *     case 'devtools-right':
-   *       params.left =
-   *         (window.screen as unknown as { availLeft: number }).availLeft +
-   *         window.screen.availWidth -
-   *         params.width!;
-   *       break;
-   *     case 'devtools-bottom':
-   *       params.height = 420;
-   *       params.top = window.screen.height - params.height;
-   *       params.width = window.screen.availWidth;
-   *       break;
-   *     case 'devtools-panel':
-   *       params.type = 'panel';
-   *       break;
-   *     case 'devtools-remote':
-   *       params = { width: 850, height: 600 };
-   *       url = 'remote.html';
-   *       break;
-   *   }
-   */
   popWindow('open', 'devtools-app.html', params);
 }
