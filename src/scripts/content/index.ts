@@ -18,7 +18,7 @@ printLine("Using the 'printLine' function from the Print Module");
  *     - micro-app-xxx且不是micro-app-head或者micro-app-body，可以多个，递归
  */
 
-function filterMicroApps(dom: any) {
+function filterMicroApps(dom: NodeListOf<Element>) {
   const microApps = dom;
   const filteredMicroApps = [];
   for (const microApp of microApps) {
@@ -81,7 +81,7 @@ function handleUrl(
   const uniqueArray = locationString.filter(
     (value, index, self) => self.indexOf(value) === index,
   );
-  const isChange = subAppUrl.includes(baseRoute);
+  const isChange = subAppUrl.includes(baseRoute) && baseRoute !== '/' && baseRoute;
   const result = isChange ? uniqueArray.join('') : fixUrl(subAppUrl);
   const handleResult = JSON.stringify(
     isDecodeBaseUrl ? subAppUrl?.concat(hash) : result,
@@ -168,7 +168,7 @@ function getChildByDomRegex(citem: Element) {
 }
 
 // 深化：子集递归查找
-const getChildMap = (childItem: Element, faLevel = '0') => {
+const getChildMap = (childItem: Element, faLevel = '0', plate: string) => {
   const fa_maps = childItem.querySelectorAll('micro-app-body');
   if (fa_maps && fa_maps.length > 0) {
     for (const [index, fa_map] of fa_maps.entries()) {
@@ -177,13 +177,13 @@ const getChildMap = (childItem: Element, faLevel = '0') => {
         const key = `${faLevel}-${index}`;
         const curItem = {
           key,
-          title: `${handleUrl(item.getAttribute('url'), item.getAttribute('baseroute'))}`,
+          title: plate === 'viewApp' ? `${item.getAttribute('name')}` : `${handleUrl(item.getAttribute('url') || '', item.getAttribute('baseroute') || '')}`,
           children: [],
         };
         topMap[key] = curItem;
         topMap[faLevel]?.children.push(curItem);
         if (item && hasChild(item.querySelectorAll('micro-app-body')[0])) {
-          getChildMap(item, key);
+          getChildMap(item, key, plate);
         }
       }
     }
@@ -191,21 +191,21 @@ const getChildMap = (childItem: Element, faLevel = '0') => {
 };
 
 // 初始化：进行一级查找
-const getMap = (faLevel = '0') => {
+const getMap = (faLevel = '0', plate: string) => {
   const topFather_1_el_maps = findTopLevelElements(microApps);
   if (topFather_1_el_maps && topFather_1_el_maps.length > 0) {
     for (const [index, item] of topFather_1_el_maps.entries()) {
       const key = `${faLevel}-${index}`;
       const curItem = {
         key,
-        title: `${handleUrl(item.getAttribute('url'), item.getAttribute('baseroute'))}`,
+        title: plate === 'viewApp' ? `${item.getAttribute('name')}` : `${handleUrl(item.getAttribute('url') || '', item.getAttribute('baseroute') || '')}`,
         children: [],
       };
       topMap[key] = curItem;
       topMap[faLevel]?.children.push(curItem);
       // 大于0，说明body内部还有body， 说明内部有嵌套，需要继续寻找
       if (item && hasChild(item.querySelectorAll('micro-app-body')[0])) {
-        getChildMap(item, key);
+        getChildMap(item, key, plate);
       }
     }
   }
@@ -241,16 +241,24 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
   microApps.forEach((microApp) => {
     if (microApp) {
-      if (request.action === 'openView') {
+      if (request.action === `open${microApp.getAttribute('name')}`) {
         (microApp as HTMLElement).style.border = '2px solid red';
-      } else if (request.action === 'closeView') {
+      } else if (request.action === `close${microApp.getAttribute('name')}`) {
         (microApp as HTMLElement).style.border = '0px';
       }
     }
   });
   if (request.action === 'devtoolsMicroApp') {
     initToMap();
-    getMap();
+    getMap('0', '');
     sendResponse(JSON.stringify(topMap['0']));
+  }
+  if (request.action === 'devtoolsViewApp') {
+    initToMap();
+    getMap('0', 'viewApp');
+    sendResponse(JSON.stringify(topMap['0']));
+  }
+  if (request.action === 'microAppElement') {
+    sendResponse(JSON.stringify(microApps));
   }
 });
