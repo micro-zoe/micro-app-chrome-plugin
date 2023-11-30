@@ -1,17 +1,18 @@
 /* eslint-disable etc/no-commented-out-code */
-import { CopyOutlined, LinkOutlined, DeleteOutlined } from '@ant-design/icons';
+import { CopyOutlined, DeleteOutlined, LinkOutlined } from '@ant-design/icons';
 import {
   Button,
   Card,
   Checkbox,
   Form,
   Input,
+  message,
   Select,
   Space,
   Switch,
   Table,
   Tabs,
-  message,
+  TreeSelect,
   Typography,
 } from 'antd';
 import React from 'react';
@@ -19,6 +20,7 @@ import {
   CopyToClipboard,
 } from 'react-copy-to-clipboard';
 import ReactJson from 'react-json-view';
+
 const { Text } = Typography;
 const { Option } = Select;
 
@@ -37,12 +39,14 @@ interface CommunicateState {
   showKVType: boolean;
   dataSource: KeyValueData[];
   jsonInputError: boolean;
+  treeData: any[];
+  treeValue: string;
 }
 
 class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateState> {
   public state: CommunicateState = {
     info: {},
-    currentTab: 'getMainToSubData',
+    currentTab: 'getMainToSubData', // 'getMainToSubData',
     showKVType: true,
     dataSource: [{
       id: this.randomId(),
@@ -52,29 +56,35 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
       valueType: 'string',
     }],
     jsonInputError: false, // 手动输入的json格式错误
+    treeData: [],
+    treeValue: '',
   };
 
   componentDidMount() {
-    this.getData();
+    this.getTree();
   }
 
   private getData = () => {
     const {
       currentTab,
+      treeValue,
     } = this.state;
-    let evalLabel = 'JSON.stringify(window.__MICRO_APP_PROXY_WINDOW__.microApp.getData())';
-    if (currentTab === 'getSubToMainData') {
-      evalLabel = `JSON.stringify(function () {
-        if (!document.querySelector("micro-app").getSendData){
-          document.querySelector("micro-app").addEventListener('datachange', function (e) {
-              document.querySelector("micro-app").getSendData = e.detail.data;
-              document.querySelector("micro-app").onDataChange;
-              // alert('子应用发送的信息:' + JSON.stringify(e.detail.data));
+    let evalLabel = '';
+    let domName = 'micro-app';
+    if (treeValue) {
+      domName += `[name='${treeValue}']`;
+    }
+    evalLabel = currentTab === 'getSubToMainData'
+      ? `JSON.stringify(function () {
+        if (!document.querySelector("${domName}").getSendData){
+          document.querySelector("${domName}").addEventListener('datachange', function (e) {
+              document.querySelector("${domName}").getSendData = e.detail.data;
+              document.querySelector("${domName}").onDataChange;
           })
         }
-        return document.querySelector("micro-app").getSendData;
-    }())`;
-    }
+        return document.querySelector("${domName}").getSendData;
+    }())`
+      : `JSON.stringify(document.querySelector("${domName}").data)`;
     chrome.devtools.inspectedWindow.eval(
       evalLabel,
       (res: string) => {
@@ -91,13 +101,35 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
     );
   };
 
+  private changeTreeValue = (e: string) => {
+    console.log('changeTreeValue', e);
+    this.setState({
+      treeValue: e,
+    }, () => {
+      this.getData();
+    });
+  };
+
   private getDataDOM = () => {
     const {
       info,
+      treeData,
+      treeValue,
     } = this.state;
     return (
       <div>
         <Space>
+          <span>子应用名称：</span>
+          <TreeSelect
+            placeholder="选择子应用"
+            treeDefaultExpandAll
+            treeData={treeData}
+            value={treeValue}
+            style={{
+              width: 200,
+            }}
+            onChange={this.changeTreeValue}
+          />
           <Button type="primary" icon={<LinkOutlined rev={null} />} onClick={this.getData}>重新获取</Button>
           <CopyToClipboard
             text={JSON.stringify(info)}
@@ -124,7 +156,7 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
       const newDataSource: KeyValueData[] = [];
       for (const key of Object.keys(newValue)) {
         const newDataValue = newValue[key];
-        let valueType: 'string' | 'number' | 'boolean' = 'string';//TODO 动态判断数据类型
+        let valueType: 'string' | 'number' | 'boolean' = 'string';// TODO 动态判断数据类型
         if (typeof newDataValue === 'number') {
           valueType = 'number';
         } else if (typeof newDataValue === 'boolean') {
@@ -135,7 +167,7 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
           checked: true,
           key,
           value: String(newDataValue),
-          valueType
+          valueType,
         });
       }
       newDataSource.push({
@@ -143,13 +175,13 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
         checked: true,
         key: '',
         value: '',
-        valueType: 'string'
+        valueType: 'string',
       });
       this.setState({
         dataSource: newDataSource,
         jsonInputError: false,
       });
-    } catch (error) {
+    } catch {
       this.setState({
         jsonInputError: true,
       });
@@ -176,13 +208,16 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
       }
     }
     return data;
-  }
+  };
 
   private sendDataDOM = () => {
     const {
       showKVType,
       jsonInputError,
       dataSource,
+      treeData,
+      treeValue,
+      currentTab,
     } = this.state;
     const data: any = this.formatData(dataSource);
     let validateStatus: '' | 'error' = '';
@@ -194,6 +229,20 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
         labelCol={{ span: 6 }}
         wrapperCol={{ span: 14 }}
       >
+        {currentTab === 'sendDataFromMainToSub' && (
+          <Form.Item label="设置接收的子应用">
+            <TreeSelect
+              placeholder="选择子应用"
+              treeDefaultExpandAll
+              treeData={treeData}
+              value={treeValue}
+              style={{
+                width: 200,
+              }}
+              onChange={this.changeTreeValue}
+            />
+          </Form.Item>
+        )}
         <Form.Item
           label={(
             <Space>
@@ -328,7 +377,7 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
             checked: true,
             key: '',
             value: '',
-            valueType: 'string'
+            valueType: 'string',
           }],
         });
       }
@@ -338,12 +387,19 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
   private sendData = () => {
     const {
       currentTab,
-      dataSource
+      dataSource,
+      treeValue,
     } = this.state;
-    let data = this.formatData(dataSource);
-    let evalLabel = `document.querySelector("micro-app").data = ${JSON.stringify(data)}`;
+    const data = this.formatData(dataSource);
+    let evalLabel = '';
     if (currentTab === 'sendDataFromSubToMain') {
       evalLabel = `window.__MICRO_APP_PROXY_WINDOW__.microApp.dispatch(${JSON.stringify(data)})`;
+    } else {
+      let domName = 'micro-app';
+      if (treeValue) {
+        domName += `[name='${treeValue}']`;
+      }
+      evalLabel = `document.querySelector("${domName}").data = ${JSON.stringify(data)}`;
     }
     chrome.devtools.inspectedWindow.eval(
       evalLabel,
@@ -351,7 +407,67 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
         message.success('发送成功');
       },
     );
-  }
+  };
+
+  private getTree = () => {
+    console.log('获取层级结构');
+    const evalLabel = `JSON.stringify(
+      function () {
+          function buildMicroAppHierarchy(node = document.body) {
+              let hierarchy = {};
+              node.childNodes.forEach((childNode) => {
+                  if (childNode.nodeType === Node.ELEMENT_NODE) {
+                      if (childNode.tagName.toLowerCase() === 'micro-app') {
+                          let childHierarchy = buildMicroAppHierarchy(childNode);
+                          let name = childNode.getAttribute('name') || 'unnamed';
+                          hierarchy[name] = childHierarchy;
+                      } else {
+                          Object.assign(hierarchy, buildMicroAppHierarchy(childNode));
+                      }
+                  }
+              });
+              return hierarchy;
+          }
+
+          function objectToArray(obj) {
+            let result = [];
+            for (let key in obj) {
+                if (obj.hasOwnProperty(key)) {
+                    let value = obj[key];
+                    let children = objectToArray(value);
+                    result.push({
+                        title: key,
+                        value: key,
+                        children
+                    });
+                }
+            }
+            return result;
+        }
+          const microAppHierarchy = buildMicroAppHierarchy();
+          return objectToArray(microAppHierarchy)
+      }()
+  );`;
+    chrome.devtools.inspectedWindow.eval(
+      evalLabel,
+      (res: string) => {
+        console.log('接收层级', res);
+        const treeData = JSON.parse(res);
+        let treeValue = '';
+        if (treeData.length > 0) {
+          treeValue = treeData[0].value;
+        }
+        this.setState({
+          treeData,
+          treeValue,
+        }, () => {
+          if (['getMainToSubData', 'getSubToMainData'].includes(this.state.currentTab)) {
+            this.getData();
+          }
+        });
+      },
+    );
+  };
 
   public render() {
     const {
@@ -398,10 +514,10 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
                   key: '',
                   value: '',
                   valueType: 'string',
-                }]
+                }],
               }, () => {
-                if (['getMainToSubData', 'getSubToMainData'].includes(activityTab)) {
-                  this.getData();
+                if (['getMainToSubData', 'getSubToMainData', 'sendDataFromSubToMain'].includes(activityTab)) {
+                  this.getTree();
                 }
               });
             }
