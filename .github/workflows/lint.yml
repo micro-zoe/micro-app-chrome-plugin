@@ -1,0 +1,16 @@
+name: Lint
+on:
+  push:
+    branches:
+      - master
+jobs:
+  eslint_check:
+    name: ESLint
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout 
+        uses: actions/checkout@v1
+      - name: NpmInstall
+        run: npm run install-deps
+      - name: Lint
+        run: npm run lint

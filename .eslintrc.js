@@ -24,6 +24,7 @@ const javascriptRules = {
   'unicorn/no-array-for-each': 'off',
   'unicorn/no-array-reduce': 'off',
   'unicorn/prefer-switch': 'off',
+  'linebreak-style': [0, 'error', 'windows']
 };
 
 const typescriptRules = {
@@ -40,6 +41,7 @@ const buildingToolsJavascriptRules = {
   'node/global-require': 'off',
   'node/no-unpublished-require': 'off',
   'unicorn/prefer-module': 'off',
+  'linebreak-style': [0, 'error', 'windows']
 };
 
 const buildingToolsTypescriptRules = {
@@ -92,6 +94,9 @@ module.exports = {
     },
   },
   noInlineConfig: true,
+  rules: {
+    'linebreak-style': [0, 'error', 'windows']
+  },
   overrides: [
     // ----------------------
     //  json files

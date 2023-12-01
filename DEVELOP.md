@@ -38,6 +38,7 @@
 
 3. found `dist.crx` change to `dist.zip`
 
+
 ## How to make a release
 
 1. Open [https://github.com/micro-zoe/micro-app-chrome-plugin/releases](https://github.com/micro-zoe/micro-app-chrome-plugin/releases), click "Draft a new release" button.
@@ -51,6 +52,22 @@
 5. Publish release.
 
 6. Modify the download link in README.md to an attachment link.
+
+
+## How to fix a bug
+
+1. Open the relevant issue and create a branch in the "Development" sidebar. Please use only English for the branch name and avoid using Chinese.
+
+2. Perform bug fixes on this branch.
+
+3. When committing the code, include a comment in the commit message with the text "fixed #(issue number)" to reference the related issue.
+
+4. This issue will be automatically closed.
+
+5. Create a pull request with a title that includes "Fixed #(issue number)". This pull request will be automatically linked to the corresponding issue.
+
+6. Wait for the reviewers to review the code. Once the code review is approved, the code will be automatically merged into the branch.
+
 
 ## Tips
 
