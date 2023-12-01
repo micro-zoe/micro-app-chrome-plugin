@@ -15,8 +15,9 @@
     "build:production": "node webpack/runner.js build production",
     "build:report": "node webpack/runner.js build production --report",
     "prettier": "prettier --write '**/*.{js,jsx,ts,tsx,json,css,less,scss,sass,md}'",
-    "prepare": "husky install",
-    "lint": "eslint src/"
+    "lint": "eslint src/",
+    "install-deps": "npm install",
+    "prepare": "husky install"
   },
   "dependencies": {
     "@ant-design/icons": "^5.2.3",
