@@ -41,6 +41,8 @@ interface CommunicateState {
   jsonInputError: boolean;
   treeData: any[];
   treeValue: string;
+  canDispatchData: any[];
+  selectDispatchAppName: string;
 }
 
 class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateState> {
@@ -58,6 +60,8 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
     jsonInputError: false, // 手动输入的json格式错误
     treeData: [],
     treeValue: '',
+    canDispatchData: [],
+    selectDispatchAppName: '',
   };
 
   componentDidMount() {
@@ -218,6 +222,40 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
     return data;
   };
 
+  private changeDispatchAppName = (e: string) => {
+    this.setState({
+      selectDispatchAppName: e,
+    });
+  };
+
+  private getCanDispatchData = () => {
+    console.log('获取有Dispatch方法的name');
+    const evalLabel = `JSON.stringify(function (){
+        const rawWindow = window.__MICRO_APP_PROXY_WINDOW__?.rawWindow || [];
+        let result = [];
+        for (var i = 0; i < rawWindow.length; i++){
+            const oneWindow = rawWindow[i];
+            result.push(oneWindow.microApp.appName);
+        }
+        return result;
+    }())`;
+    chrome.devtools.inspectedWindow.eval(
+      evalLabel,
+      (res: string) => {
+        console.log('获取结果', res);
+        const canDispatchData = JSON.parse(res);
+        let selectDispatchAppName = '';
+        if (canDispatchData.length > 0) {
+          selectDispatchAppName = canDispatchData[0];
+        }
+        this.setState({
+          canDispatchData,
+          selectDispatchAppName,
+        });
+      },
+    );
+  };
+
   private sendDataDOM = () => {
     const {
       showKVType,
@@ -226,6 +264,8 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
       treeData,
       treeValue,
       currentTab,
+      canDispatchData,
+      selectDispatchAppName,
     } = this.state;
     const data: any = this.formatData(dataSource);
     let validateStatus: '' | 'error' = '';
@@ -254,6 +294,21 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
               icon={<RedoOutlined rev={null} />}
               onClick={() => {
                 this.getTree();
+                message.success('已刷新');
+              }}
+            />
+          </Form.Item>
+        )}
+        {currentTab === 'sendDataFromSubToMain' && canDispatchData.length > 0 && (
+          <Form.Item label="设置发送的子应用">
+            <Select value={selectDispatchAppName} onChange={this.changeDispatchAppName} style={{ width: 200 }}>
+              {canDispatchData.map(el => (<Option value={el} key={el}>{el}</Option>))}
+            </Select>
+            <Button
+              type="link"
+              icon={<RedoOutlined rev={null} />}
+              onClick={() => {
+                this.getCanDispatchData();
                 message.success('已刷新');
               }}
             />
@@ -405,11 +460,27 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
       currentTab,
       dataSource,
       treeValue,
+      canDispatchData,
+      selectDispatchAppName
     } = this.state;
     const data = this.formatData(dataSource);
     let evalLabel = '';
     if (currentTab === 'sendDataFromSubToMain') {
-      evalLabel = `window.__MICRO_APP_PROXY_WINDOW__.microApp.dispatch(${JSON.stringify(data)})`;
+      if (canDispatchData.length === 0) {
+        evalLabel = `window.__MICRO_APP_PROXY_WINDOW__.microApp.dispatch(${JSON.stringify(data)})`;
+      } else {
+        evalLabel = `JSON.stringify(function (){
+            const rawWindow = window.__MICRO_APP_PROXY_WINDOW__?.rawWindow || [];
+            for (var i = 0; i < rawWindow.length; i++){
+                const oneWindow = rawWindow[i];
+                if (oneWindow.microApp.appName === "${selectDispatchAppName}"){
+                  console.log('发送', oneWindow.microApp);
+                    oneWindow.microApp.dispatch(${JSON.stringify(data)});
+                    break;
+                }
+            }
+        }())`;
+      }
     } else {
       let domName = 'micro-app';
       if (treeValue) {
@@ -417,6 +488,7 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
       }
       evalLabel = `document.querySelector("${domName}").data = ${JSON.stringify(data)}`;
     }
+    console.log('evalLabel', evalLabel);
     chrome.devtools.inspectedWindow.eval(
       evalLabel,
       () => {
@@ -534,6 +606,9 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
               }, () => {
                 if (['getMainToSubData', 'getSubToMainData', 'sendDataFromSubToMain'].includes(activityTab)) {
                   this.getTree();
+                }
+                if (activityTab === 'sendDataFromSubToMain') {
+                  this.getCanDispatchData();
                 }
               });
             }
