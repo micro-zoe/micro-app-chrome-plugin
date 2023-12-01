@@ -2,7 +2,7 @@
 /** @jsx jsxCustomEvent */
 import {
   DeleteOutlined,
-  RedoOutlined
+  RedoOutlined,
 } from '@ant-design/icons';
 import microApp from '@micro-zoe/micro-app';
 import jsxCustomEvent from '@micro-zoe/micro-app/polyfill/jsx-custom-event';
@@ -61,7 +61,7 @@ microApp.start({
     // 全局插件，作用于所有子应用的js文件
     global: [{
       // 必填，js处理函数，必须返回code值
-      loader: (code: string, url: string, option?: any) => `${[
+      loader: (code: string, url: string) => `${[
         'if (!window.__MICRO_APP_EXTENSION_FETCH__) {',
         '  window.__MICRO_APP_EXTENSION_FETCH__ = window.fetch;',
         '  window.fetch = function(url, options) {',
@@ -72,7 +72,7 @@ microApp.start({
         '  };',
         '}',
       ].join('')
-        }${code}`,
+      }${code}`,
     }],
   },
 });
@@ -80,7 +80,7 @@ microApp.start({
 interface ControlData {
   url: string;
   prefix: string;
-  data: { key: string; value: string; valueType: string; }[];
+  data: { key: string; value: string; valueType: string }[];
 }
 
 interface KeyValueData {
@@ -118,7 +118,7 @@ class SimulationPage extends React.PureComponent<SimulationPageProps, Simulation
       checked: true,
       key: '',
       value: '',
-      valueType: 'string'
+      valueType: 'string',
     }],
     jsonInputError: false, // 手动输入的json格式错误
     microAppUrl: '',
@@ -128,20 +128,16 @@ class SimulationPage extends React.PureComponent<SimulationPageProps, Simulation
     const {
       url,
       prefix,
-      dataSource
+      dataSource,
     } = this.state;
     window.location.search = encodeURIComponent(encodeJSON({
       url,
       prefix,
-      data: JSON.stringify(dataSource.filter(el => {
-        return el.checked && el.key !== '' && el.value !== '';
-      }).map(el => {
-        return {
-          key: el.key,
-          value: el.value,
-          valueType: el.valueType
-        }
-      }))
+      data: JSON.stringify(dataSource.filter(el => el.checked && el.key !== '' && el.value !== '').map(el => ({
+        key: el.key,
+        value: el.value,
+        valueType: el.valueType,
+      }))),
     }));
   }
 
@@ -180,24 +176,24 @@ class SimulationPage extends React.PureComponent<SimulationPageProps, Simulation
 
     if (q || q === 'undefined') {
       const url = q.url;
-      let dataSource = [];
+      const dataSource = [];
       if (typeof q.data === 'string' && q.data) {
-        for (let oneData of JSON.parse(q.data)) {
+        for (const oneData of JSON.parse(q.data)) {
           dataSource.push({
             id: this.randomId(),
             key: oneData.key,
             value: oneData.value,
             checked: true,
-            valueType: oneData.valueType
-          })
+            valueType: oneData.valueType,
+          });
         }
         dataSource.push({
           id: this.randomId(),
           key: '',
           value: '',
           checked: true,
-          valueType: 'string'
-        })
+          valueType: 'string',
+        });
       }
       (window as unknown as { __MICRO_APP_EXTENSION_URL_PROTOCOL__: string }).__MICRO_APP_EXTENSION_URL_PROTOCOL__ = url.replace(/:\/\/.+$/ui, ':');
       this.setState({
@@ -271,7 +267,7 @@ class SimulationPage extends React.PureComponent<SimulationPageProps, Simulation
             checked: true,
             key: '',
             value: '',
-            valueType: 'string'
+            valueType: 'string',
           }],
         });
       }
@@ -284,7 +280,7 @@ class SimulationPage extends React.PureComponent<SimulationPageProps, Simulation
       const newDataSource: KeyValueData[] = [];
       for (const key of Object.keys(newValue)) {
         const newDataValue = newValue[key];
-        let valueType: 'string' | 'number' | 'boolean' = 'string';//TODO 动态判断数据类型
+        let valueType: 'string' | 'number' | 'boolean' = 'string';// TODO 动态判断数据类型
         if (typeof newDataValue === 'number') {
           valueType = 'number';
         } else if (typeof newDataValue === 'boolean') {
@@ -295,7 +291,7 @@ class SimulationPage extends React.PureComponent<SimulationPageProps, Simulation
           checked: true,
           key,
           value: String(newDataValue),
-          valueType
+          valueType,
         });
       }
       newDataSource.push({
@@ -303,13 +299,13 @@ class SimulationPage extends React.PureComponent<SimulationPageProps, Simulation
         checked: true,
         key: '',
         value: '',
-        valueType: 'string'
+        valueType: 'string',
       });
       this.setState({
         dataSource: newDataSource,
         jsonInputError: false,
       });
-    } catch (error) {
+    } catch {
       this.setState({
         jsonInputError: true,
       });
@@ -333,7 +329,7 @@ class SimulationPage extends React.PureComponent<SimulationPageProps, Simulation
   private refresh = () => {
     this.applyControl();
     this.updateControl();
-  }
+  };
 
   public render() {
     const { timeStr, url, prefix, showKVType, dataSource, jsonInputError, microAppUrl } = this.state;
@@ -395,11 +391,11 @@ class SimulationPage extends React.PureComponent<SimulationPageProps, Simulation
                   onSearch={this.check}
                 />
               </Form.Item>
-              {url && (
+              { url && (
                 <Form.Item label="子应用嵌入代码">
-                  <Text copyable>{`<micro-app url="${prefix}${baceUrl}" name="micro-app-demo"></micro-app>`}</Text>
+                  <Text copyable>{ `<micro-app url="${prefix}${baceUrl}" name="micro-app-demo"></micro-app>` }</Text>
                 </Form.Item>
-              )}
+              ) }
               <Form.Item
                 label={(
                   <Space>
@@ -410,7 +406,7 @@ class SimulationPage extends React.PureComponent<SimulationPageProps, Simulation
                 validateStatus={validateStatus}
                 help={jsonInputError ? '请输入标准JSON格式数据' : ''}
               >
-                {showKVType
+                { showKVType
                   ? (
                     <Table
                       columns={[{
@@ -464,7 +460,8 @@ class SimulationPage extends React.PureComponent<SimulationPageProps, Simulation
                               type: 'valueType',
                               value: e,
                               record,
-                            })}>
+                            })}
+                          >
                             <Option value="string">string</Option>
                             <Option value="number">number</Option>
                             <Option value="boolean">boolean</Option>
@@ -487,23 +484,31 @@ class SimulationPage extends React.PureComponent<SimulationPageProps, Simulation
                       defaultValue={JSON.stringify(data)}
                       onChange={e => this.changeTextAreaData(e.target.value)}
                     />
-                  )}
+                  ) }
               </Form.Item>
-              {JSON.stringify(data) !== '{}' && <Form.Item
-                label='最终传参'
+              { JSON.stringify(data) !== '{}' && (
+              <Form.Item
+                label="最终传参"
               >
-                <Text copyable>{JSON.stringify(data)}</Text>
-              </Form.Item>}
+                <Text copyable>{ JSON.stringify(data) }</Text>
+              </Form.Item>
+              ) }
             </Form>
           </Card>
-          <Divider orientation="left">子应用预览<Divider type="vertical" /><Button type='link' size='small' onClick={this.refresh} icon={<RedoOutlined rev={null} />}>刷新</Button></Divider>
-          {microAppUrl && <micro-app
+          <Divider orientation="left">
+            子应用预览
+            <Divider type="vertical" />
+            <Button type="link" size="small" onClick={this.refresh} icon={<RedoOutlined rev={null} />}>刷新</Button>
+          </Divider>
+          { microAppUrl && (
+          <micro-app
             className={styles.demo}
             url={prefix + microAppUrl}
             name="micro-app-demo"
             data={data}
             key={timeStr}
-          />}
+          />
+          ) }
         </Content>
       </Space>
     );

@@ -115,16 +115,14 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab1) => {
     // 5、loading or refreshing will change storage data
     chrome.storage.onChanged.addListener((changes, namespace) => {
       logger.debug('changes', changes);
-      for (const key in changes) {
+      Object.entries(changes).forEach(([key, storageChange]) => {
         logger.debug('key', key);
-        const storageChange = changes[key];
         logger.debug('storageChange', storageChange);
         if (key === `${tabId}`) {
           storageData[tabId] = isMicroApp;
           chrome.storage.sync.set(storageData);
-          break;
         }
-      }
+      });
     });
     // 6、according to isMicroApp setting iconPath
     chrome.browserAction.setIcon({ path: isMicroApp ? blueIconPath : grayIconPath, tabId });

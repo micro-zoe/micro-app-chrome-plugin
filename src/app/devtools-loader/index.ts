@@ -19,8 +19,8 @@
             window.clearInterval(timer);
             isDevPanelVisible = true;
             chrome.devtools.panels.create(
-              'Micro App',
-              'asset/icon-34.png',
+              '💠 Micro App',
+              '',
               'devtools-app.html',
               (e) => {
                 e.onShown.addListener(onPanelShow);
