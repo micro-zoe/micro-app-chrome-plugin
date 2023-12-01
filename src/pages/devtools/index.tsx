@@ -101,7 +101,7 @@ class DevToolsPage extends React.PureComponent<DevToolsPageProps, DevToolsPageSt
     return (
       <div className={styles.container}>
         <HeaderTabs value={this.state.activeTab} onChange={(value) => { this.setState({ activeTab: value }); }} />
-        {this.renderContent()}
+        { this.renderContent() }
       </div>
     );
   }
