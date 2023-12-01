@@ -23,6 +23,18 @@ class DevToolsPage extends React.PureComponent<DevToolsPageProps, DevToolsPageSt
     info: {},
   };
 
+  private updateInfo() {
+    const res = MICRO_APP_ENV_LIST.map(p => `[${JSON.stringify(p.name)}]: ${chrome.tabs.executeScript({ code: `${p.eval}` })}`).join(',');
+    const env = decodeJSON<DevToolsMicroAppInfo['env']>(res);
+    if (env) {
+      this.setState({ info: { currentMicroApp: { env } } });
+    }
+  }
+
+  public componentDidMount(): void {
+    this.updateInfo();
+  }
+
   /*
    * According to tab Switch content
    *
@@ -36,7 +48,7 @@ class DevToolsPage extends React.PureComponent<DevToolsPageProps, DevToolsPageSt
       case 'ROUTE_MATCH':
         return <Route info={this.state.info} />;
       case 'CONSOLE':
-        return <Console info={this.state.info} />;
+        return <Console />;
       default:
         return null;
     }

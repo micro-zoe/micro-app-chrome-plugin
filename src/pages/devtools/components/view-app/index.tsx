@@ -2,14 +2,11 @@ import React from 'react';
 
 import styles from './index.module.less';
 
-interface ViewAppProps {}
+interface ViewAppProps { }
 interface ViewAppState {
-  info: { [key: string]: string | number };
 }
 class ViewAppPage extends React.PureComponent<ViewAppProps, ViewAppState> {
-  public state: ViewAppState = {
-    info: {},
-  };
+  public state: ViewAppState = {};
 
   public render() {
     return (
