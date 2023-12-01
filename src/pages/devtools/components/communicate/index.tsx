@@ -1,5 +1,5 @@
 /* eslint-disable etc/no-commented-out-code */
-import { CopyOutlined, DeleteOutlined, LinkOutlined } from '@ant-design/icons';
+import { CopyOutlined, DeleteOutlined, LinkOutlined, RedoOutlined } from '@ant-design/icons';
 import {
   Button,
   Card,
@@ -130,6 +130,14 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
             }}
             onChange={this.changeTreeValue}
           />
+          <Button
+            type="link"
+            icon={<RedoOutlined rev={null} />}
+            onClick={() => {
+              this.getTree();
+              message.success('已刷新');
+            }}
+          />
           <Button type="primary" icon={<LinkOutlined rev={null} />} onClick={this.getData}>重新获取</Button>
           <CopyToClipboard
             text={JSON.stringify(info)}
@@ -240,6 +248,14 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
                 width: 200,
               }}
               onChange={this.changeTreeValue}
+            />
+            <Button
+              type="link"
+              icon={<RedoOutlined rev={null} />}
+              onClick={() => {
+                this.getTree();
+                message.success('已刷新');
+              }}
             />
           </Form.Item>
         )}
