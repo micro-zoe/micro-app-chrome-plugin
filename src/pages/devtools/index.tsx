@@ -3,6 +3,7 @@ import React from 'react';
 import { decodeJSON } from '@/utils/json';
 
 import Communicate from './components/communicate';
+import IframeCommunicate from './components/iframe-communicate';
 import ViewApp from './components/view-app';
 import Console from './components/console-log';
 import HeaderTabs from './components/header-tabs';
@@ -13,7 +14,7 @@ import { DevToolsInfo, DevToolsMicroAppInfo } from './types';
 
 import styles from './index.module.less';
 
-interface DevToolsPageProps {}
+interface DevToolsPageProps { }
 
 interface DevToolsPageState {
   activeTab: string;
@@ -76,6 +77,8 @@ class DevToolsPage extends React.PureComponent<DevToolsPageProps, DevToolsPageSt
         return <MicroAppEnv info={this.state.info} />;
       case 'COMMUNICATE':
         return <Communicate />;
+      case 'IFRAME_COMMUNICATE':
+        return <IframeCommunicate />;
       case 'VIEW_APP':
         return <ViewApp />;
       case 'ROUTE_MATCH':
@@ -91,7 +94,7 @@ class DevToolsPage extends React.PureComponent<DevToolsPageProps, DevToolsPageSt
     return (
       <div className={styles.container}>
         <HeaderTabs value={this.state.activeTab} onChange={(value) => { this.setState({ activeTab: value }); }} />
-        { this.renderContent() }
+        {this.renderContent()}
       </div>
     );
   }

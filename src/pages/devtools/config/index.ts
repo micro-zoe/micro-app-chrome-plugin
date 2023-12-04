@@ -1,5 +1,6 @@
 export const HEADER_TAB_LIST = [
   { name: 'ENV_VALUE_VIEWER', label: 'Environment' },
+  { name: 'IFRAME_COMMUNICATE', label: 'Iframe Communicate' },
   { name: 'COMMUNICATE', label: 'Communicate' },
   { name: 'VIEW_APP', label: 'View' },
   { name: 'ROUTE_MATCH', label: 'Route' },
