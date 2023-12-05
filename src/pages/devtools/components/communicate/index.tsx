@@ -20,6 +20,7 @@ import {
   CopyToClipboard,
 } from 'react-copy-to-clipboard';
 import ReactJson from 'react-json-view';
+import { getMicroAppLevel, htmlToDom } from '@/utils/chrome';
 
 const { Text } = Typography;
 const { Option } = Select;
@@ -499,62 +500,24 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
 
   private getTree = () => {
     console.log('获取层级结构');
-    const evalLabel = `JSON.stringify(
-      function () {
-          function buildMicroAppHierarchy(node = document.body) {
-              let hierarchy = {};
-              node.childNodes.forEach((childNode) => {
-                  if (childNode.nodeType === Node.ELEMENT_NODE) {
-                      if (childNode.tagName.toLowerCase() === 'micro-app') {
-                          let childHierarchy = buildMicroAppHierarchy(childNode);
-                          let name = childNode.getAttribute('name') || 'unnamed';
-                          hierarchy[name] = childHierarchy;
-                      } else {
-                          Object.assign(hierarchy, buildMicroAppHierarchy(childNode));
-                      }
-                  }
-              });
-              return hierarchy;
-          }
-
-          function objectToArray(obj) {
-            let result = [];
-            for (let key in obj) {
-                if (obj.hasOwnProperty(key)) {
-                    let value = obj[key];
-                    let children = objectToArray(value);
-                    result.push({
-                        title: key,
-                        value: key,
-                        children
-                    });
-                }
-            }
-            return result;
+    getMicroAppLevel({
+      title: 'name',
+      value: 'name'
+    }).then(treeData => {
+      console.log('microAppLevel返回', treeData);
+      let treeValue = '';
+      if (treeData.length > 0) {
+        treeValue = treeData[0].value;
+      }
+      this.setState({
+        treeData,
+        treeValue,
+      }, () => {
+        if (['getMainToSubData', 'getSubToMainData'].includes(this.state.currentTab)) {
+          this.getData();
         }
-          const microAppHierarchy = buildMicroAppHierarchy();
-          return objectToArray(microAppHierarchy)
-      }()
-  );`;
-    chrome.devtools.inspectedWindow.eval(
-      evalLabel,
-      (res: string) => {
-        console.log('接收层级', res);
-        const treeData = JSON.parse(res);
-        let treeValue = '';
-        if (treeData.length > 0) {
-          treeValue = treeData[0].value;
-        }
-        this.setState({
-          treeData,
-          treeValue,
-        }, () => {
-          if (['getMainToSubData', 'getSubToMainData'].includes(this.state.currentTab)) {
-            this.getData();
-          }
-        });
-      },
-    );
+      });
+    })
   };
 
   public render() {
