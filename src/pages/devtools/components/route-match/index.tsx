@@ -90,7 +90,7 @@ const Route: React.FC<RouteProps> = (props) => {
         </div>
         <Tree
           showLine
-          switcherIcon={<DownOutlined />}
+          switcherIcon={<DownOutlined rev={null} />}
           defaultExpandedKeys={['0-0-0']}
           treeData={treeData}
           onSelect={onSelect}

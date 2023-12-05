@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { DownOutlined } from '@ant-design/icons';
 import { Tree } from 'antd';
 import React from 'react';
@@ -8,8 +9,8 @@ interface ViewAppProps {}
 interface ViewAppState {
   info: { [key: string]: string | number };
   base: string;
-  dataTree: unknown;
-  treeData: unknown;
+  dataTree: any[];
+  treeData: any[];
   viewSwitch: number;
 }
 class ViewAppPage extends React.PureComponent<ViewAppProps, ViewAppState> {
@@ -101,7 +102,7 @@ class ViewAppPage extends React.PureComponent<ViewAppProps, ViewAppState> {
 && (
 <Tree
   showLine
-  switcherIcon={<DownOutlined />}
+  switcherIcon={<DownOutlined rev={null} />}
   defaultExpandedKeys={['0-0-0']}
   treeData={this.state.treeData}
   onSelect={this.onOpen}
@@ -124,7 +125,7 @@ class ViewAppPage extends React.PureComponent<ViewAppProps, ViewAppState> {
 && (
 <Tree
   showLine
-  switcherIcon={<DownOutlined />}
+  switcherIcon={<DownOutlined rev={null} />}
   defaultExpandedKeys={['0-0-0']}
   treeData={this.state.treeData}
   onSelect={this.onClose}

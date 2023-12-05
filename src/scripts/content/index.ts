@@ -71,9 +71,15 @@ function handleUrl(
     || baseUrl.includes('%3A')
     ? decodeMicroPath(baseUrl)
     : baseUrl;
-  const pathname = decodedURL.match(regex)[1];
-  const search = decodedURL.match(regex)[2];
-  const hash = decodedURL.match(regex)[3];
+  let pathname = '';
+  let search = '';
+  let hash = '';
+  const matchResult = decodedURL.match(regex);
+  if (matchResult) {
+    pathname = matchResult[1];
+    search = matchResult[2];
+    hash = matchResult[3];
+  }
   const isDecodeBaseUrl = decodedURL.includes('#')
     ? '#'.concat(decodedURL.split('#')[1])
     : '';
