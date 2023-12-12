@@ -20,7 +20,7 @@ import {
   CopyToClipboard,
 } from 'react-copy-to-clipboard';
 import ReactJson from 'react-json-view';
-import { getMicroAppLevel, htmlToDom } from '@/utils/chrome';
+import { getMicroAppLevel } from '@/utils/chrome';
 
 const { Text } = Typography;
 const { Option } = Select;
