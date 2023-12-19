@@ -1,14 +1,12 @@
 import React from 'react';
 
-import { decodeJSON } from '@/utils/json';
-
 import Communicate from './components/communicate';
 import Console from './components/console-log';
 import HeaderTabs from './components/header-tabs';
 import MicroAppEnv from './components/micro-app-env';
 import Route from './components/route-match';
-import { HEADER_TAB_LIST, MICRO_APP_ENV_LIST } from './config';
-import { DevToolsInfo, DevToolsMicroAppInfo } from './types';
+import { HEADER_TAB_LIST } from './config';
+import { DevToolsInfo } from './types';
 
 import styles from './index.module.less';
 

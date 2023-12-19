@@ -8,12 +8,12 @@ import HeaderTabs from './components/header-tabs';
 import MicroAppEnv from './components/micro-app-env';
 import Route from './components/route-match';
 import ViewApp from './components/view-app';
-import { HEADER_TAB_LIST, MICRO_APP_ENV_LIST } from './config';
+import { HEADER_TAB_LIST } from './config';
 import { DevToolsInfo, DevToolsMicroAppInfo } from './types';
 
 import styles from './index.module.less';
 
-interface DevToolsPageProps {}
+interface DevToolsPageProps { }
 
 interface DevToolsPageState {
   activeTab: string;
@@ -28,7 +28,17 @@ class DevToolsPage extends React.PureComponent<DevToolsPageProps, DevToolsPageSt
 
   private updateInfo() {
     chrome.devtools.inspectedWindow.eval(
-      `JSON.stringify({${MICRO_APP_ENV_LIST.map(p => `[${JSON.stringify(p.name)}]: ${p.eval}`).join(',')}})`,
+      `JSON.stringify(function (){
+        const thisWindow = window.__MICRO_APP_PROXY_WINDOW__ || window;
+        const allKey = JSON.stringify(Object.keys(thisWindow));
+        let microAppInfo = {};
+        for (let el of JSON.parse(allKey)){
+          if (el.indexOf('__MICRO_APP') > -1){
+            microAppInfo[el] = thisWindow[el];
+          }
+        }
+        return microAppInfo;
+      }())`,
       (res: string) => {
         const env = decodeJSON<DevToolsMicroAppInfo['env']>(res);
         if (env) {
