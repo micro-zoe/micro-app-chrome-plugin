@@ -68,22 +68,6 @@ chrome.contextMenus.onClicked.addListener(({ menuItemId }) => {
       }
     });
   }
-  /*
-   * chrome.system.display.getInfo((displayInfo) => {
-   *   const screenHeight = displayInfo[0].bounds.height;
-   *   const screenWidth = displayInfo[0].bounds.width;
-   *   const options: chrome.windows.CreateData = {
-   *     type: 'popup',
-   *     top: screenHeight - 420,
-   *     width: screenWidth,
-   *     height: 420,
-   *   };
-   *   options.url = chrome.extension.getURL(
-   *     'popup-open.html',
-   *   );
-   *   chrome.windows.create(options);
-   * });
-   */
 });
 
 /**
