@@ -19,56 +19,63 @@ export const getURLCookies = (url: string) => new Promise<chrome.cookies.Cookie[
  * @param mapping 参数映射表，例如将url映射为key则传入{key: 'url'}
  * @returns
  */
-export const getMicroAppLevel = (mapping = {}): Promise<any> => new Promise((resolve, reject) => {
+
+ export const getMicroAppLevel = (mapping = {}): Promise<any> => new Promise((resolve, reject) => {
   chrome.devtools.inspectedWindow.eval(
-    'document.body.innerHTML',
+    `JSON.stringify(
+      function () {
+          function buildMicroAppHierarchy(node = document.body) {
+              let hierarchy = {};
+              const reg = /^micro-app?-?.+(?<!(head|body))$/u;
+              node.childNodes.forEach((childNode) => {
+                  if (childNode.nodeType === Node.ELEMENT_NODE) {
+                      if (reg.test(childNode.tagName.toLowerCase())) {
+                          const childHierarchy = buildMicroAppHierarchy(childNode);
+                          const name = childNode.getAttribute('name') || 'unnamed';
+                          const version = childNode.version;
+                          let router = {}
+                          if (/^1\./.test(version)){
+                              router = window.__MICRO_APP_PROXY_WINDOW__.microApp.router.current.get(name);
+                          }
+                          hierarchy[name] = {
+                              attributes: {
+                                  ...getElementAttributes(childNode),
+                                  version,
+                                  ...router,
+                              },
+                              hasChildren: JSON.stringify(childHierarchy) !== '{}',
+                              children: childHierarchy,
+                          };
+                      } else {
+                          hierarchy = {
+                              ...hierarchy,
+                              ...buildMicroAppHierarchy(childNode),
+                          };
+                      }
+                  }
+              });
+              return hierarchy;
+          };
+  
+          function getElementAttributes(element) {
+              const attributes = {};
+              for (let i = 0; i < element.attributes.length; i++) {
+                  const attr = element.attributes[i];
+                  attributes[attr.name] = attr.value;
+              }
+              return attributes;
+          };
+  
+          return buildMicroAppHierarchy();
+      }()
+  )`,
     (res: string) => {
-      const dom = htmlToDom(res);
-      const microAppHierarchy = buildMicroAppHierarchy(dom);
-      const treeData = objectToArray(microAppHierarchy, mapping);
+      console.log('getMicroAppLevel', JSON.parse(res));
+      const treeData = objectToArray(JSON.parse(res), mapping);
       resolve(treeData);
     },
   );
 });
-
-const htmlToDom = (htmlContent: string) => {
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(htmlContent, 'text/html');
-  return doc.body; // 使用解析后的document的body作为起点
-};
-
-const getElementAttributes = (element: any) => {
-  const attributes = {};
-  for (let i = 0; i < element.attributes.length; i++) {
-    const attr = element.attributes[i];
-    attributes[attr.name] = attr.value;
-  }
-  return attributes;
-};
-
-const buildMicroAppHierarchy = (node: any): any => {
-  let hierarchy = {};
-  const reg = /^micro-app?-?.+(?<!(head|body))$/u;
-  node.childNodes.forEach((childNode: any) => {
-    if (childNode.nodeType === Node.ELEMENT_NODE) {
-      if (reg.test(childNode.tagName.toLowerCase())) {
-        const childHierarchy = buildMicroAppHierarchy(childNode);
-        const name = childNode.getAttribute('name') || 'unnamed';
-        hierarchy[name] = {
-          attributes: getElementAttributes(childNode),
-          hasChildren: JSON.stringify(childHierarchy) !== '{}',
-          children: childHierarchy,
-        };
-      } else {
-        hierarchy = {
-          ...hierarchy,
-          ...buildMicroAppHierarchy(childNode),
-        };
-      }
-    }
-  });
-  return hierarchy;
-};
 
 const objectToArray = (obj: any, mapping: any) => {
   const result = [];

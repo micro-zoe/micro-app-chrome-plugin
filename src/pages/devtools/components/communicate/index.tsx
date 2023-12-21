@@ -12,8 +12,13 @@ import {
   Switch,
   Table,
   Tabs,
-  TreeSelect,
   Typography,
+  Tree,
+  Row,
+  Col,
+  Descriptions,
+  ColorPicker,
+  Empty,
 } from 'antd';
 import React from 'react';
 import {
@@ -22,7 +27,7 @@ import {
 import ReactJson from 'react-json-view';
 import { getMicroAppLevel } from '@/utils/chrome';
 
-const { Text } = Typography;
+const { Text, Link } = Typography;
 const { Option } = Select;
 
 interface CommunicateProps { }
@@ -41,10 +46,22 @@ interface CommunicateState {
   dataSource: KeyValueData[];
   jsonInputError: boolean;
   treeData: any[];
-  treeValue: string;
   canDispatchData: any[];
   selectDispatchAppName: string;
+  selectInfo: any;
+  lighting: {
+    [name: string]: {
+      checked: boolean;
+      color: string;
+    }
+  },
+  init: boolean;
 }
+
+type AllAppInfoData = {
+  name: string;
+  info: any;
+};
 
 class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateState> {
   public state: CommunicateState = {
@@ -60,24 +77,80 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
     }],
     jsonInputError: false, // 手动输入的json格式错误
     treeData: [],
-    treeValue: '',
+    selectInfo: null,//选择的子应用信息
     canDispatchData: [],
     selectDispatchAppName: '',
+    lighting: {},
+    init: true,
   };
 
   componentDidMount() {
     this.getTree();
   }
 
+  private getTree = () => {
+    const {
+      selectInfo
+    } = this.state;
+    console.log('获取层级结构');
+    getMicroAppLevel({
+      key: 'name',
+      title: 'name',
+      url: 'url',
+      iframe: 'iframe',
+      version: 'version',
+      href: 'href',
+      fullPath: 'fullPath'
+    }).then(treeData => {
+      console.log('microAppLevel返回', treeData);
+      this.setState({
+        treeData,
+        info: {},
+        init: false,
+      }, () => {
+        if (['getMainToSubData', 'getSubToMainData'].includes(this.state.currentTab)) {
+          this.getData();
+        }
+        this.getCanDispatchData();
+      });
+      const allAppInfo = this.getAllAppInfo(treeData);
+      console.log('allAppInfo', allAppInfo);
+      if (selectInfo) {
+        let inAppInfo = false;
+        for (let el of allAppInfo) {
+          if (el.name == selectInfo.name) {
+            inAppInfo = true;
+            this.setState({
+              selectInfo: el.info
+            })
+            break;
+          }
+        }
+        if (!inAppInfo && allAppInfo.length > 0) {
+          this.setState({
+            selectInfo: allAppInfo[0].info,
+          })
+        }
+      } else {
+        if (allAppInfo.length > 0) {
+          this.setState({
+            selectInfo: allAppInfo[0].info
+          })
+        }
+      }
+    })
+  };
+
   private getData = () => {
     const {
       currentTab,
-      treeValue,
+      selectInfo,
     } = this.state;
     let evalLabel = '';
     let domName = 'micro-app';
-    if (treeValue) {
-      domName += `[name='${treeValue}']`;
+    const appName = selectInfo?.name || '';
+    if (appName) {
+      domName += `[name='${appName}']`;
     }
     evalLabel = currentTab === 'getSubToMainData'
       ? `JSON.stringify(function () {
@@ -106,48 +179,18 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
     );
   };
 
-  private changeTreeValue = (e: string) => {
-    console.log('changeTreeValue', e);
-    this.setState({
-      treeValue: e,
-    }, () => {
-      this.getData();
-    });
-  };
-
   private getDataDOM = () => {
     const {
       info,
-      treeData,
-      treeValue,
     } = this.state;
     return (
       <div>
         <Space>
-          <span>子应用名称：</span>
-          <TreeSelect
-            placeholder="选择子应用"
-            treeDefaultExpandAll
-            treeData={treeData}
-            value={treeValue}
-            style={{
-              width: 200,
-            }}
-            onChange={this.changeTreeValue}
-          />
-          <Button
-            type="link"
-            icon={<RedoOutlined rev={null} />}
-            onClick={() => {
-              this.getTree();
-              message.success('已刷新');
-            }}
-          />
-          <Button type="primary" icon={<LinkOutlined rev={null} />} onClick={this.getData}>重新获取</Button>
+          <Button size='small' type="primary" icon={<LinkOutlined rev={null} />} onClick={this.getData}>重新获取</Button>
           <CopyToClipboard
             text={JSON.stringify(info)}
           >
-            <Button icon={<CopyOutlined rev={null} />}>复制</Button>
+            <Button size='small' icon={<CopyOutlined rev={null} />}>复制</Button>
           </CopyToClipboard>
         </Space>
         <ReactJson
@@ -223,32 +266,38 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
     return data;
   };
 
-  private changeDispatchAppName = (e: string) => {
-    this.setState({
-      selectDispatchAppName: e,
-    });
-  };
-
   private getCanDispatchData = () => {
+    const {
+      selectInfo
+    } = this.state;
     console.log('获取有Dispatch方法的name');
     const evalLabel = `JSON.stringify(function (){
-        const rawWindow = window.__MICRO_APP_PROXY_WINDOW__?.rawWindow || [];
-        let result = [];
-        for (var i = 0; i < rawWindow.length; i++){
-            const oneWindow = rawWindow[i];
-            result.push(oneWindow.microApp.appName);
-        }
-        return result;
-    }())`;
+      const rawWindow = window.__MICRO_APP_PROXY_WINDOW__?.rawWindow || [];
+      if (rawWindow.length == 0){
+          result = [window.__MICRO_APP_PROXY_WINDOW__?.microApp?.appName];
+      } else {
+          let result = [];
+          for (var i = 0; i < rawWindow.length; i++){
+              const oneWindow = rawWindow[i];
+              result.push(oneWindow.microApp.appName);
+          }
+      }
+      return result;
+  }())`;
     chrome.devtools.inspectedWindow.eval(
       evalLabel,
       (res: string) => {
         console.log('获取结果', res);
         const canDispatchData = JSON.parse(res);
+        console.log('canDispatchData', canDispatchData);
         let selectDispatchAppName = '';
         if (canDispatchData.length > 0) {
           selectDispatchAppName = canDispatchData[0];
+          if (selectInfo && canDispatchData.indexOf(selectInfo.name) > -1) {
+            selectDispatchAppName = selectInfo.name;
+          }
         }
+        console.log('selectDispatchAppName', selectDispatchAppName);
         this.setState({
           canDispatchData,
           selectDispatchAppName,
@@ -262,11 +311,6 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
       showKVType,
       jsonInputError,
       dataSource,
-      treeData,
-      treeValue,
-      currentTab,
-      canDispatchData,
-      selectDispatchAppName,
     } = this.state;
     const data: any = this.formatData(dataSource);
     let validateStatus: '' | 'error' = '';
@@ -278,43 +322,6 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
         labelCol={{ span: 6 }}
         wrapperCol={{ span: 14 }}
       >
-        {currentTab === 'sendDataFromMainToSub' && (
-          <Form.Item label="设置接收的子应用">
-            <TreeSelect
-              placeholder="选择子应用"
-              treeDefaultExpandAll
-              treeData={treeData}
-              value={treeValue}
-              style={{
-                width: 200,
-              }}
-              onChange={this.changeTreeValue}
-            />
-            <Button
-              type="link"
-              icon={<RedoOutlined rev={null} />}
-              onClick={() => {
-                this.getTree();
-                message.success('已刷新');
-              }}
-            />
-          </Form.Item>
-        )}
-        {currentTab === 'sendDataFromSubToMain' && canDispatchData.length > 0 && (
-          <Form.Item label="设置发送的子应用">
-            <Select value={selectDispatchAppName} onChange={this.changeDispatchAppName} style={{ width: 200 }}>
-              {canDispatchData.map(el => (<Option value={el} key={el}>{el}</Option>))}
-            </Select>
-            <Button
-              type="link"
-              icon={<RedoOutlined rev={null} />}
-              onClick={() => {
-                this.getCanDispatchData();
-                message.success('已刷新');
-              }}
-            />
-          </Form.Item>
-        )}
         <Form.Item
           label={(
             <Space>
@@ -460,14 +467,16 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
     const {
       currentTab,
       dataSource,
-      treeValue,
+      selectInfo,
       canDispatchData,
       selectDispatchAppName
     } = this.state;
     const data = this.formatData(dataSource);
+    const appName = selectInfo?.name || '';
     let evalLabel = '';
     if (currentTab === 'sendDataFromSubToMain') {
-      if (canDispatchData.length === 0) {
+      console.log('canDispatchData', canDispatchData, selectDispatchAppName)
+      if (canDispatchData.length <= 1) {
         evalLabel = `window.__MICRO_APP_PROXY_WINDOW__.microApp.dispatch(${JSON.stringify(data)})`;
       } else {
         evalLabel = `JSON.stringify(function (){
@@ -484,8 +493,8 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
       }
     } else {
       let domName = 'micro-app';
-      if (treeValue) {
-        domName += `[name='${treeValue}']`;
+      if (appName) {
+        domName += `[name='${appName}']`;
       }
       evalLabel = `document.querySelector("${domName}").data = ${JSON.stringify(data)}`;
     }
@@ -498,87 +507,222 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
     );
   };
 
-  private getTree = () => {
-    console.log('获取层级结构');
-    getMicroAppLevel({
-      title: 'name',
-      value: 'name'
-    }).then(treeData => {
-      console.log('microAppLevel返回', treeData);
-      let treeValue = '';
-      if (treeData.length > 0) {
-        treeValue = treeData[0].value;
+  private getAllAppInfo = (data: any[]): AllAppInfoData[] => {
+    let result: AllAppInfoData[] = [];
+    for (let el of data) {
+      result.push({
+        name: el.name,
+        info: el
+      });
+      if (el.children.length > 0) {
+        const subResult = this.getAllAppInfo(el.children);
+        result = [...result, ...subResult];
       }
+    }
+    return result;
+  }
+
+  private selectTree = (selectedKeys: (string | number)[], info: { event: "select"; selected: boolean; node: any; selectedNodes: any[]; nativeEvent: MouseEvent; }) => {
+    const {
+      currentTab
+    } = this.state;
+    console.log('选择项', selectedKeys, info)
+    if (selectedKeys.length > 0) {
       this.setState({
-        treeData,
-        treeValue,
+        selectInfo: info.node
       }, () => {
-        if (['getMainToSubData', 'getSubToMainData'].includes(this.state.currentTab)) {
+        if (['getMainToSubData', 'getSubToMainData'].indexOf(currentTab) > -1) {
           this.getData();
         }
-      });
+      })
+    }
+  }
+
+  private changeLighting = (checked: boolean) => {
+    const {
+      selectInfo
+    } = this.state;
+    console.log('修改高亮', checked);
+    this.setState({
+      lighting: {
+        ...this.state.lighting,
+        [selectInfo.name]: {
+          ...this.state.lighting[selectInfo.name] || {},
+          checked,
+        }
+      }
+    }, () => {
+      this.doLighting();
     })
-  };
+  }
+
+  private changeColor = (color: any, hex: string) => {
+    const {
+      selectInfo
+    } = this.state;
+    console.log('修改颜色', color, hex);
+    this.setState({
+      lighting: {
+        ...this.state.lighting,
+        [selectInfo.name]: {
+          ...this.state.lighting[selectInfo.name] || {},
+          color: hex
+        }
+      }
+    }, () => {
+      this.doLighting();
+    })
+  }
+
+  private doLighting = () => {
+    const {
+      lighting,
+      selectInfo
+    } = this.state;
+    const color = lighting[selectInfo.name].color || '#E2231A';
+    let evalLabel = `JSON.stringify(function(){
+      if (!window.originalStyles){
+        window.originalStyles = new Map();
+        window.setLightingStyle = [];
+      }
+      var appDOM = document.getElementsByName('${selectInfo.name}')[0];
+      if (${lighting[selectInfo.name].checked}) {
+          const originalStyle = appDOM.getAttribute('style');
+          if (window.setLightingStyle.indexOf('${selectInfo.name}') == -1 && !window.originalStyles.get('${selectInfo.name}')){
+            window.setLightingStyle.push('${selectInfo.name}');
+            window.originalStyles.set('${selectInfo.name}', originalStyle);
+          }
+          appDOM.style.border = '2px dashed ${color}';
+          appDOM.style.display = 'block';
+          appDOM.style.transformOrigin = 'center';
+          appDOM.style.transform = 'rotate(360deg)';
+      } else {
+          const originalStyle = window.originalStyles.get('${selectInfo.name}');
+          if (originalStyle) {
+              appDOM.setAttribute('style', originalStyle);
+          } else {
+              appDOM.removeAttribute('style');
+          }
+      }
+  }())`;
+    console.log('evalLabel', evalLabel);
+    chrome.devtools.inspectedWindow.eval(
+      evalLabel,
+      () => {
+      },
+    );
+  }
 
   public render() {
     const {
       currentTab,
+      treeData,
+      selectInfo,
+      canDispatchData,
+      lighting,
+      init,
     } = this.state;
-    return (
-      <Card>
-        <Tabs
-          tabPosition="left"
-          size="small"
-          items={[{
-            key: 'getMainToSubData',
-            label: '获取父应用传递给子应用的数据',
-            children: this.getDataDOM(),
-          }, {
-            key: 'getSubToMainData',
-            label: '获取子应用传递给父应用的数据',
-            children: this.getDataDOM(),
-          }, {
-            key: 'sendDataFromMainToSub',
-            label: '父应用向子应用发送数据',
-            children: this.sendDataDOM(),
-          }, {
-            key: 'sendDataFromSubToMain',
-            label: '子应用向父应用发送数据',
-            children: this.sendDataDOM(),
-          }, {
-            key: 'openSimulation',
-            label: '子应用开发环境模拟',
-          }]}
-          activeKey={currentTab}
-          onChange={(activityTab) => {
-            if (activityTab === 'openSimulation') {
-              chrome.tabs.create({
-                url: 'simulation.html',
-              });
-            } else {
-              this.setState({
-                info: {},
-                currentTab: activityTab,
-                dataSource: [{
-                  id: this.randomId(),
-                  checked: true,
-                  key: '',
-                  value: '',
-                  valueType: 'string',
-                }],
-              }, () => {
-                if (['getMainToSubData', 'getSubToMainData', 'sendDataFromSubToMain'].includes(activityTab)) {
-                  this.getTree();
+    if (!init && treeData.length == 0) {
+      return (<Card>
+          <Empty description={<Space direction='vertical'>
+            <div>未发现MicroApp微应用</div>
+            <Button type='primary' onClick={this.getTree} size='small'>重新读取</Button>
+          </Space>} />
+      </Card>)
+    }
+    let tabItems: {
+      key: string;
+      label: string;
+      children?: JSX.Element
+    }[] = [{
+      key: 'getMainToSubData',
+      label: '获取父应用传递给此子应用的数据',
+      children: this.getDataDOM(),
+    }, {
+      key: 'getSubToMainData',
+      label: '获取此子应用传递给父应用的数据',
+      children: this.getDataDOM(),
+    }, {
+      key: 'sendDataFromMainToSub',
+      label: '模拟父应用向此子应用发送数据',
+      children: this.sendDataDOM(),
+    }]
+    console.log('selectInfo', selectInfo, canDispatchData);
+    if (canDispatchData.length > 0 && selectInfo && selectInfo.name) {
+      if (canDispatchData.indexOf(selectInfo.name) > -1) {
+        tabItems.push({
+          key: 'sendDataFromSubToMain',
+          label: '模拟此子应用向父应用发送数据',
+          children: this.sendDataDOM(),
+        })
+      }
+    }
+    tabItems.push({
+      key: 'openSimulation',
+      label: '子应用开发环境模拟',
+    })
+    return (<div style={{ padding: 10 }}>
+      <Row gutter={10} style={{ display: 'flex', alignItems: 'stretch' }}>
+        <Col span={4} style={{ flex: 1 }}>
+          <Card style={{ height: '100%' }} size='small' title='选择子应用' extra={<Button type='link' icon={<RedoOutlined rev={null} />} onClick={this.getTree} />}>
+            <Tree
+              defaultExpandAll
+              autoExpandParent
+              treeData={treeData}
+              onSelect={this.selectTree}
+              selectedKeys={selectInfo ? [selectInfo.name] : []}
+            />
+          </Card>
+        </Col>
+        {selectInfo && <Col span={20}>
+          <Card style={{ marginBottom: 10 }} size='small' title='应用信息' extra={<Button type='link' icon={<RedoOutlined rev={null} />} onClick={this.getTree} />}>
+            <Descriptions size='small'>
+              <Descriptions.Item label='name'>{selectInfo.name}</Descriptions.Item>
+              <Descriptions.Item label='url'><Link copyable href={selectInfo.href == 'href' ? selectInfo.url : selectInfo.href} target='_blank'>{selectInfo.href == 'href' ? selectInfo.url : selectInfo.href}</Link></Descriptions.Item>
+              {!/^0\./.test(selectInfo.version) && <Descriptions.Item label='子路由'>{selectInfo.fullPath}</Descriptions.Item>}
+              <Descriptions.Item label='高亮范围'>
+                <Space>
+                  <ColorPicker value={lighting[selectInfo.name] ? lighting[selectInfo.name].color : '#E2231A'} size='small' onChange={this.changeColor} />
+                  <Switch checked={lighting[selectInfo.name] ? lighting[selectInfo.name].checked : false} onChange={this.changeLighting} />
+                </Space>
+              </Descriptions.Item>
+              {!/^0\./.test(selectInfo.version) && <Descriptions.Item label='iframe模式'>{selectInfo.iframe != 'iframe' ? selectInfo.iframe : 'false'}</Descriptions.Item>}
+              <Descriptions.Item label='MicroApp版本'>{selectInfo.version}</Descriptions.Item>
+            </Descriptions>
+          </Card>
+          <Card size='small'>
+            <Tabs
+              size="small"
+              items={tabItems}
+              activeKey={currentTab}
+              onChange={(activityTab) => {
+                if (activityTab === 'openSimulation') {
+                  chrome.tabs.create({
+                    url: 'simulation.html',
+                  });
+                } else {
+                  this.setState({
+                    info: {},
+                    currentTab: activityTab,
+                    dataSource: [{
+                      id: this.randomId(),
+                      checked: true,
+                      key: '',
+                      value: '',
+                      valueType: 'string',
+                    }],
+                  }, () => {
+                    if (activityTab === 'sendDataFromSubToMain') {
+                      this.getCanDispatchData();
+                    }
+                  });
                 }
-                if (activityTab === 'sendDataFromSubToMain') {
-                  this.getCanDispatchData();
-                }
-              });
-            }
-          }}
-        />
-      </Card>
-    );
+              }}
+            />
+          </Card>
+        </Col>}
+      </Row>
+    </div>)
   }
 }
 
