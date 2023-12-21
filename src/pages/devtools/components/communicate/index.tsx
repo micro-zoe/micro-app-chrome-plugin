@@ -92,7 +92,6 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
     const {
       selectInfo
     } = this.state;
-    console.log('获取层级结构');
     getMicroAppLevel({
       key: 'name',
       title: 'name',
@@ -114,7 +113,6 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
         this.getCanDispatchData();
       });
       const allAppInfo = this.getAllAppInfo(treeData);
-      console.log('allAppInfo', allAppInfo);
       if (selectInfo) {
         let inAppInfo = false;
         for (let el of allAppInfo) {
@@ -270,7 +268,6 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
     const {
       selectInfo
     } = this.state;
-    console.log('获取有Dispatch方法的name');
     const evalLabel = `JSON.stringify(function (){
       const rawWindow = window.__MICRO_APP_PROXY_WINDOW__?.rawWindow || [];
       if (rawWindow.length == 0){
@@ -287,9 +284,7 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
     chrome.devtools.inspectedWindow.eval(
       evalLabel,
       (res: string) => {
-        console.log('获取结果', res);
         const canDispatchData = JSON.parse(res);
-        console.log('canDispatchData', canDispatchData);
         let selectDispatchAppName = '';
         if (canDispatchData.length > 0) {
           selectDispatchAppName = canDispatchData[0];
@@ -297,7 +292,6 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
             selectDispatchAppName = selectInfo.name;
           }
         }
-        console.log('selectDispatchAppName', selectDispatchAppName);
         this.setState({
           canDispatchData,
           selectDispatchAppName,
@@ -475,7 +469,6 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
     const appName = selectInfo?.name || '';
     let evalLabel = '';
     if (currentTab === 'sendDataFromSubToMain') {
-      console.log('canDispatchData', canDispatchData, selectDispatchAppName)
       if (canDispatchData.length <= 1) {
         evalLabel = `window.__MICRO_APP_PROXY_WINDOW__.microApp.dispatch(${JSON.stringify(data)})`;
       } else {
@@ -484,7 +477,6 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
             for (var i = 0; i < rawWindow.length; i++){
                 const oneWindow = rawWindow[i];
                 if (oneWindow.microApp.appName === "${selectDispatchAppName}"){
-                  console.log('发送', oneWindow.microApp);
                     oneWindow.microApp.dispatch(${JSON.stringify(data)});
                     break;
                 }
@@ -526,7 +518,6 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
     const {
       currentTab
     } = this.state;
-    console.log('选择项', selectedKeys, info)
     if (selectedKeys.length > 0) {
       this.setState({
         selectInfo: info.node
@@ -542,7 +533,6 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
     const {
       selectInfo
     } = this.state;
-    console.log('修改高亮', checked);
     this.setState({
       lighting: {
         ...this.state.lighting,
@@ -624,10 +614,10 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
     } = this.state;
     if (!init && treeData.length == 0) {
       return (<Card>
-          <Empty description={<Space direction='vertical'>
-            <div>未发现MicroApp微应用</div>
-            <Button type='primary' onClick={this.getTree} size='small'>重新读取</Button>
-          </Space>} />
+        <Empty description={<Space direction='vertical'>
+          <div>未发现MicroApp微应用</div>
+          <Button type='primary' onClick={this.getTree} size='small'>重新读取</Button>
+        </Space>} />
       </Card>)
     }
     let tabItems: {
@@ -647,7 +637,6 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
       label: '模拟父应用向此子应用发送数据',
       children: this.sendDataDOM(),
     }]
-    console.log('selectInfo', selectInfo, canDispatchData);
     if (canDispatchData.length > 0 && selectInfo && selectInfo.name) {
       if (canDispatchData.indexOf(selectInfo.name) > -1) {
         tabItems.push({
@@ -659,7 +648,7 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
     }
     tabItems.push({
       key: 'openSimulation',
-      label: '子应用开发环境模拟',
+      label: '此子应用开发环境模拟',
     })
     return (<div style={{ padding: 10 }}>
       <Row gutter={10} style={{ display: 'flex', alignItems: 'stretch' }}>
@@ -697,8 +686,15 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
               activeKey={currentTab}
               onChange={(activityTab) => {
                 if (activityTab === 'openSimulation') {
+                  const url = selectInfo.url.replace(/^https?:\/\//, '');
+                  const prefix = (new URL(selectInfo.url)).protocol;
+                  const params = {
+                    url,
+                    prefix: `${prefix}//`,
+                    data: JSON.stringify([])
+                  }
                   chrome.tabs.create({
-                    url: 'simulation.html',
+                    url: `simulation.html?${encodeURIComponent(JSON.stringify(params))}`,
                   });
                 } else {
                   this.setState({
