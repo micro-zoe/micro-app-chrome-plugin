@@ -71,7 +71,6 @@ const webpackConfigs = [{
     'popup-app': utils.fullPath('src/app/popup/index.tsx'),
     'devtools-app': utils.fullPath('src/app/devtools/index.tsx'),
     'simulation-app': utils.fullPath('src/app/simulation/index.tsx'),
-    'popup-open': utils.fullPath('src/app/popup-open/index.tsx'),
   },
   output: {
     path: process.env.DIST_PATH,
@@ -224,12 +223,6 @@ const webpackConfigs = [{
       template: utils.fullPath('src/app/simulation/index.html'),
       filename: 'simulation.html',
       chunks: ['simulation-app'],
-      cache: false,
-    }),
-    new HtmlWebpackPlugin({
-      template: utils.fullPath('src/app/popup-open/index.html'),
-      filename: 'popup-open.html',
-      chunks: ['popup-open'],
       cache: false,
     }),
     // Webpack plugin that runs TypeScript type checker on a separate process.

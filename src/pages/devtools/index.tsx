@@ -33,7 +33,7 @@ class DevToolsPage extends React.PureComponent<DevToolsPageProps, DevToolsPageSt
         const allKey = JSON.stringify(Object.keys(thisWindow));
         let microAppInfo = {};
         for (let el of JSON.parse(allKey)){
-          if (el.indexOf('__MICRO_APP') > -1){
+          if (el.indexOf('__MICRO_APP') > -1 && ['__MICRO_APP_WINDOW__', '__MICRO_APP_SANDBOX__'].indexOf(el) == -1){
             microAppInfo[el] = thisWindow[el];
           }
         }
