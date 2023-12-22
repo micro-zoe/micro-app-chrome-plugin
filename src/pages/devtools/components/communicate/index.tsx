@@ -650,6 +650,13 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
       key: 'openSimulation',
       label: '此子应用开发环境模拟',
     })
+    let href = '';
+    if (selectInfo){
+      href = selectInfo.href == 'href' ? selectInfo.url : selectInfo.href;
+      if (!/^https?:\/\//.test(href)){
+        href = `http://${href}`;
+      }
+    }
     return (<div style={{ padding: 10 }}>
       <Row gutter={10} style={{ display: 'flex', alignItems: 'stretch' }}>
         <Col span={4} style={{ flex: 1 }}>
@@ -667,15 +674,15 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
           <Card style={{ marginBottom: 10 }} size='small' title='应用信息' extra={<Button type='link' icon={<RedoOutlined rev={null} />} onClick={this.getTree} />}>
             <Descriptions size='small'>
               <Descriptions.Item label='name'>{selectInfo.name}</Descriptions.Item>
-              <Descriptions.Item label='url'><Link copyable href={selectInfo.href == 'href' ? selectInfo.url : selectInfo.href} target='_blank'>{selectInfo.href == 'href' ? selectInfo.url : selectInfo.href}</Link></Descriptions.Item>
-              {!/^0\./.test(selectInfo.version) && <Descriptions.Item label='子路由'>{selectInfo.fullPath}</Descriptions.Item>}
+              <Descriptions.Item label='url'><Link copyable href={href} target='_blank'>{selectInfo.href == 'href' ? selectInfo.url : selectInfo.href}</Link></Descriptions.Item>
+              {!/^0\./.test(selectInfo.version) && <Descriptions.Item label='子路由'>{selectInfo.fullPath != 'fullPath' ? selectInfo.fullPath : '/'}</Descriptions.Item>}
               <Descriptions.Item label='高亮范围'>
                 <Space>
                   <ColorPicker value={lighting[selectInfo.name] ? lighting[selectInfo.name].color : '#E2231A'} size='small' onChange={this.changeColor} />
                   <Switch checked={lighting[selectInfo.name] ? lighting[selectInfo.name].checked : false} onChange={this.changeLighting} />
                 </Space>
               </Descriptions.Item>
-              {!/^0\./.test(selectInfo.version) && <Descriptions.Item label='iframe模式'>{selectInfo.iframe != 'iframe' ? selectInfo.iframe : 'false'}</Descriptions.Item>}
+              {!/^0\./.test(selectInfo.version) && <Descriptions.Item label='iframe模式'>{selectInfo.iframe != 'iframe' ? (selectInfo.iframe || 'false') : 'false'}</Descriptions.Item>}
               <Descriptions.Item label='MicroApp版本'>{selectInfo.version}</Descriptions.Item>
             </Descriptions>
           </Card>
