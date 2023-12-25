@@ -20,7 +20,7 @@ class PopupPage extends React.PureComponent<PopupPageProps, PopupPageProps> {
       <div className={styles.app}>
         <div className={styles['app-link']} onClick={() => { this.open(); }}>
           <a>
-            打开"子应用开发环境模拟"页面
+            打开“子应用开发环境模拟”页面
           </a>
         </div>
 
