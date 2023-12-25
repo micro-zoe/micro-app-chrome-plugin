@@ -88,7 +88,7 @@ const objectToArray = (obj: any, mapping: any) => {
     if (mapping && JSON.stringify(mapping) !== '{}') {
       const attributes = value.attributes;
       for (const oneKey of Object.keys(mapping)) {
-        para[oneKey] = attributes[mapping[oneKey]] ?? mapping[oneKey];
+        para[oneKey] = attributes[mapping[oneKey]] ?? null;
       }
     }
     if (value.hasChildren) {

@@ -99,7 +99,8 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
       iframe: 'iframe',
       version: 'version',
       href: 'href',
-      fullPath: 'fullPath'
+      fullPath: 'fullPath',
+      baseroute: 'baseroute'
     }).then(treeData => {
       console.log('microAppLevel返回', treeData);
       this.setState({
@@ -675,14 +676,15 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
             <Descriptions size='small'>
               <Descriptions.Item label='name'>{selectInfo.name}</Descriptions.Item>
               <Descriptions.Item label='url'><Link copyable href={href} target='_blank'>{selectInfo.url}</Link></Descriptions.Item>
-              {!/^0\./.test(selectInfo.version) && <Descriptions.Item label='子路由'>{selectInfo.fullPath != 'fullPath' ? selectInfo.fullPath : '/'}</Descriptions.Item>}
+              {selectInfo.baseroute && <Descriptions.Item label='baseroute'>{selectInfo.baseroute}</Descriptions.Item>}
+              {selectInfo.fullPath && <Descriptions.Item label='子路由'>{selectInfo.fullPath}</Descriptions.Item>}
               <Descriptions.Item label='高亮范围'>
                 <Space>
                   <ColorPicker value={lighting[selectInfo.name] ? lighting[selectInfo.name].color : '#E2231A'} size='small' onChange={this.changeColor} />
                   <Switch checked={lighting[selectInfo.name] ? lighting[selectInfo.name].checked : false} onChange={this.changeLighting} />
                 </Space>
               </Descriptions.Item>
-              {!/^0\./.test(selectInfo.version) && <Descriptions.Item label='iframe模式'>{selectInfo.iframe != 'iframe' ? (selectInfo.iframe || 'false') : 'false'}</Descriptions.Item>}
+              {!/^0\./.test(selectInfo.version) && <Descriptions.Item label='iframe模式'>{selectInfo.iframe || 'false'}</Descriptions.Item>}
               <Descriptions.Item label='MicroApp版本'>{selectInfo.version}</Descriptions.Item>
             </Descriptions>
           </Card>
