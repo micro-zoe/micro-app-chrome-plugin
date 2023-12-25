@@ -46,4 +46,8 @@ export const MICRO_APP_ENV_INFO = {
     describe: '是否是主应用',
     url: 'https://micro-zoe.github.io/micro-app/docs.html#/zh-cn/env?id=__micro_app_base_application__',
   },
+  __MICRO_APP_STATE__: {
+    describe: '基座中获取子应用的状态',
+    url: 'https://micro-zoe.github.io/micro-app/docs.html#/zh-cn/changelog?id=_100-rc3',
+  },
 };
