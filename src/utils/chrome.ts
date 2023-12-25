@@ -1,3 +1,5 @@
+/* eslint-disable no-console */
+/* eslint-disable no-useless-escape */
 /**
  * Get cookies for specific URL
  * @param url URL
@@ -14,13 +16,48 @@ export const getURLCookies = (url: string) => new Promise<chrome.cookies.Cookie[
     });
 });
 
-/**
- * 获取微应用层级关系
- * @param mapping 参数映射表，例如将url映射为key则传入{key: 'url'}
- * @returns
- */
+interface OneTreeData {
+  [name: string]: {
+    attributes: {
+      [key: string]: unknown;
+    };
+    children: OneTreeData;
+    hasChildren: boolean;
+  };
+}
 
- export const getMicroAppLevel = (mapping = {}): Promise<any> => new Promise((resolve, reject) => {
+export interface FinalTreeData {
+  name: string;
+  version?: string;
+  [key: string]: unknown;
+}
+
+const objectToArray = (obj: OneTreeData, mapping: object): FinalTreeData[] => {
+  const result = [];
+  for (const key of Object.keys(obj)) {
+    const value = obj[key];
+    const para: {
+      name: string;
+      children: FinalTreeData[];
+    } = {
+      name: value.attributes.name as string,
+      children: [],
+    };
+    if (mapping && JSON.stringify(mapping) !== '{}') {
+      const attributes = value.attributes;
+      for (const oneKey of Object.keys(mapping)) {
+        para[oneKey] = attributes[mapping[oneKey]] ?? null;
+      }
+    }
+    if (value.hasChildren) {
+      para.children = objectToArray(value.children, mapping);
+    }
+    result.push(para);
+  }
+  return result;
+};
+
+export const getMicroAppLevel = (mapping: object = {}): Promise<FinalTreeData[]> => new Promise<FinalTreeData[]>((resolve) => {
   chrome.devtools.inspectedWindow.eval(
     `JSON.stringify(
       function () {
@@ -71,30 +108,8 @@ export const getURLCookies = (url: string) => new Promise<chrome.cookies.Cookie[
   )`,
     (res: string) => {
       console.log('getMicroAppLevel', JSON.parse(res));
-      const treeData = objectToArray(JSON.parse(res), mapping);
+      const treeData = objectToArray(JSON.parse(res) as OneTreeData, mapping);
       resolve(treeData);
     },
   );
 });
-
-const objectToArray = (obj: any, mapping: any) => {
-  const result = [];
-  for (const key in obj) {
-    const value = obj[key];
-    const para: any = {
-      name: value.attributes.name,
-      children: [],
-    };
-    if (mapping && JSON.stringify(mapping) !== '{}') {
-      const attributes = value.attributes;
-      for (const oneKey of Object.keys(mapping)) {
-        para[oneKey] = attributes[mapping[oneKey]] ?? null;
-      }
-    }
-    if (value.hasChildren) {
-      para.children = objectToArray(value.children, mapping);
-    }
-    result.push(para);
-  }
-  return result;
-};
