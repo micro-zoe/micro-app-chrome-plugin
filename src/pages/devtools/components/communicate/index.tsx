@@ -8,16 +8,20 @@ import {
   Col,
   ColorPicker,
   Descriptions,
+  Dropdown,
   Empty,
   Form,
   Input,
   message,
+  Popover,
+  Radio,
   Row,
   Select,
   Space,
   Switch,
   Table,
   Tabs,
+  Tag,
   Tree,
   Typography,
 } from 'antd';
@@ -88,7 +92,7 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
     selectDispatchAppName: '',
     lighting: {},
     init: true,
-    iframe: true, // 是否是iframe模式
+    iframe: false, // 是否是iframe模式
   };
 
   public componentDidMount() {
@@ -585,21 +589,20 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
     let evalLabel = '';
     if (iframe) {
       const nameLevel = this.findHierarchyNames(treeData, appName) || [];
-      console.log('nameLevel', nameLevel);
       evalLabel = `JSON.stringify(
         function () {
             function listenToIframeMessages(iframeIds) {
                 function attachMessageListener(windowRef, ids, index) {
                     if (index >= ids.length - 1) {
-                      ${currentTab === 'sendDataFromSubToMain'
-    ? `
+                      if (${currentTab === 'sendDataFromSubToMain'}){
                         windowRef.postMessage({
                           data: ${JSON.stringify(data)}
                         }, "*");
-                      `
-    : `
-                        windowRef.data = ${JSON.stringify(data)};
-                      `}
+                      } else {
+                        windowRef.document.getElementById(ids[index]).contentWindow.postMessage({
+                          data: ${JSON.stringify(data)}
+                        }, "*");
+                      }
                     } else {
                         const nextIframe = windowRef.document.getElementById(ids[index]);
                         if (nextIframe && nextIframe.contentWindow) {
@@ -713,39 +716,94 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
     const {
       lighting,
       selectInfo,
+      iframe,
+      treeData,
     } = this.state;
     if (selectInfo) {
       const color = lighting[selectInfo.name].color || '#E2231A';
-      const evalLabel = `JSON.stringify(function(){
-        if (!window.originalStyles){
-          window.originalStyles = new Map();
-          window.setLightingStyle = [];
-        }
-        var appDOM = document.getElementsByName('${selectInfo.name}')[0];
-        if (${lighting[selectInfo.name].checked}) {
-            const originalStyle = appDOM.getAttribute('style');
-            if (window.setLightingStyle.indexOf('${selectInfo.name}') == -1 && !window.originalStyles.get('${selectInfo.name}')){
-              window.setLightingStyle.push('${selectInfo.name}');
-              window.originalStyles.set('${selectInfo.name}', originalStyle);
-            }
-            appDOM.style.border = '2px dashed ${color}';
-            appDOM.style.display = 'block';
-            appDOM.style.transformOrigin = 'center';
-            appDOM.style.transform = 'rotate(360deg)';
-        } else {
-            const originalStyle = window.originalStyles.get('${selectInfo.name}');
-            if (originalStyle) {
-                appDOM.setAttribute('style', originalStyle);
-            } else {
-                appDOM.removeAttribute('style');
-            }
-        }
-    }())`;
+      let evalLabel = `JSON.stringify(function(){
+          if (!window.originalStyles){
+            window.originalStyles = new Map();
+            window.setLightingStyle = [];
+          }
+          var appDOM = document.getElementsByName('${selectInfo.name}')[0];
+          if (${lighting[selectInfo.name].checked}) {
+              const originalStyle = appDOM.getAttribute('style');
+              if (window.setLightingStyle.indexOf('${selectInfo.name}') == -1 && !window.originalStyles.get('${selectInfo.name}')){
+                window.setLightingStyle.push('${selectInfo.name}');
+                window.originalStyles.set('${selectInfo.name}', originalStyle);
+              }
+              appDOM.style.border = '2px dashed ${color}';
+              appDOM.style.display = 'block';
+              appDOM.style.transformOrigin = 'center';
+              appDOM.style.transform = 'rotate(360deg)';
+          } else {
+              const originalStyle = window.originalStyles.get('${selectInfo.name}');
+              if (originalStyle) {
+                  appDOM.setAttribute('style', originalStyle);
+              } else {
+                  appDOM.removeAttribute('style');
+              }
+          }
+      }())`;
+      if (iframe) {
+        const nameLevel = this.findHierarchyNames(treeData, selectInfo.name) || [];
+        console.log('nameLevel', nameLevel);
+        evalLabel = `JSON.stringify(
+          function () {
+              if (!window.originalStyles){
+                window.originalStyles = new Map();
+                window.setLightingStyle = [];
+              }
+              function listenToIframeMessages(iframeIds) {
+                  function attachMessageListener(windowRef, ids, index) {
+                      if (index >= ids.length - 1) {
+                        var appDOM = windowRef.document.getElementById('${selectInfo.name}');
+                        if (${lighting[selectInfo.name].checked}) {
+                            const originalStyle = appDOM.getAttribute('style');
+                            if (window.setLightingStyle.indexOf('${selectInfo.name}') == -1 && !window.originalStyles.get('${selectInfo.name}')){
+                              window.setLightingStyle.push('${selectInfo.name}');
+                              window.originalStyles.set('${selectInfo.name}', originalStyle);
+                            }
+                            appDOM.style.border = '2px dashed ${color}';
+                            appDOM.style.display = 'block';
+                            appDOM.style.transformOrigin = 'center';
+                            appDOM.style.transform = 'rotate(360deg)';
+                        } else {
+                            const originalStyle = window.originalStyles.get('${selectInfo.name}');
+                            if (originalStyle) {
+                                appDOM.setAttribute('style', originalStyle);
+                            } else {
+                                appDOM.removeAttribute('style');
+                            }
+                        }
+                      } else {
+                          const nextIframe = windowRef.document.getElementById(ids[index]);
+                          if (nextIframe && nextIframe.contentWindow) {
+                              attachMessageListener(nextIframe.contentWindow, ids, index + 1);
+                          }
+                      }
+                  }
+                  attachMessageListener(window, iframeIds, 0);
+              }
+              listenToIframeMessages(${JSON.stringify(nameLevel)});
+          }()
+      )`;
+      }
       console.log('evalLabel', evalLabel);
       chrome.devtools.inspectedWindow.eval(
         evalLabel,
       );
     }
+  };
+
+  private changeType = (type: string) => {
+    console.log('调整模式', type);
+    this.setState({
+      iframe: type === 'iframe',
+    }, () => {
+      this.getTree();
+    });
   };
 
   public render() {
@@ -762,23 +820,32 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
       return (
         <Card>
           <Empty description={(
-            <Space direction="vertical">
-              <div>未发现MicroApp微应用</div>
-              <Button type="primary" onClick={this.getTree} size="small">重新读取</Button>
-              <Button
-                type="default"
-                onClick={() => {
-                  this.setState({
-                    iframe: true,
-                  }, () => {
-                    this.getTree();
-                  });
+            <Space direction="vertical" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+              <div>
+                未发现
+                { iframe ? 'iframe' : 'MicroApp' }
+                微应用
+              </div>
+              <Dropdown.Button
+                menu={{
+                  items: [{
+                    key: 'MicroApp',
+                    label: 'MicroApp模式',
+                  }, {
+                    key: 'iframe',
+                    label: 'iframe模式',
+                  }],
+                  onClick: (e) => {
+                    this.changeType(e.key);
+                  },
                 }}
+                trigger={['click']}
+                onClick={this.getTree}
                 size="small"
+                type="primary"
               >
-                检测iframe应用
-
-              </Button>
+                重新读取
+              </Dropdown.Button>
             </Space>
           )}
           />
@@ -833,7 +900,31 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
       <div style={{ padding: 10 }}>
         <Row gutter={10} style={{ display: 'flex', alignItems: 'stretch' }}>
           <Col span={4} style={{ flex: 1 }}>
-            <Card style={{ height: '100%' }} size="small" title="选择子应用" extra={<Button type="link" icon={<RedoOutlined rev={null} />} onClick={this.getTree} />}>
+            <Card
+              style={{ height: '100%' }}
+              size="small"
+              title={(
+                <Space>
+                  <span>选择子应用</span>
+                  <Popover title={(
+                    <div>
+                      <p>选择模式：</p>
+                      <Radio.Group onChange={e => this.changeType(e.target.value)} value={iframe ? 'iFrame' : 'MicroApp'}>
+                        <Space direction="vertical">
+                          <Radio value="MicroApp">MicroApp</Radio>
+                          <Radio value="iframe">iFrame</Radio>
+                        </Space>
+                      </Radio.Group>
+                    </div>
+                  )}
+                  >
+                    <Tag>{ iframe ? 'iframe' : 'MicroApp' }</Tag>
+
+                  </Popover>
+                </Space>
+              )}
+              extra={<Button type="link" icon={<RedoOutlined rev={null} />} onClick={this.getTree} />}
+            >
               <Tree
                 defaultExpandAll
                 autoExpandParent

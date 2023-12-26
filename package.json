@@ -23,7 +23,7 @@
     "@ant-design/icons": "^5.2.3",
     "@hot-loader/react-dom": "^17.0.2",
     "@micro-zoe/micro-app": "^0.8.10",
-    "antd": "^5.8.0",
+    "antd": "^5.12.5",
     "classnames": "^2.3.2",
     "lodash": "^4.17.21",
     "moment": "^2.29.4",
