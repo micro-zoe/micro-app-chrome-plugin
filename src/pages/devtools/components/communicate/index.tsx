@@ -1,3 +1,4 @@
+/* eslint-disable unicorn/prefer-spread */
 /* eslint-disable no-console */
 import { CopyOutlined, DeleteOutlined, LinkOutlined, RedoOutlined } from '@ant-design/icons';
 import {
@@ -26,7 +27,7 @@ import {
 } from 'react-copy-to-clipboard';
 import ReactJson from 'react-json-view';
 
-import { FinalTreeData, getMicroAppLevel } from '@/utils/chrome';
+import { FinalTreeData, getIframeAppLevel, getMicroAppLevel } from '@/utils/chrome';
 
 const { Text, Link } = Typography;
 const { Option } = Select;
@@ -60,6 +61,7 @@ interface CommunicateState {
     };
   };
   init: boolean;
+  iframe: boolean;
 }
 
 type AllAppInfoData = {
@@ -86,6 +88,7 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
     selectDispatchAppName: '',
     lighting: {},
     init: true,
+    iframe: true, // 是否是iframe模式
   };
 
   public componentDidMount() {
@@ -95,18 +98,11 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
   private getTree = () => {
     const {
       selectInfo,
+      currentTab,
+      iframe,
     } = this.state;
-    getMicroAppLevel({
-      key: 'name',
-      title: 'name',
-      url: 'url',
-      iframe: 'iframe',
-      version: 'version',
-      href: 'href',
-      fullPath: 'fullPath',
-      baseroute: 'baseroute',
-    }).then((treeData) => {
-      console.log('microAppLevel返回', treeData);
+    this.getAppLevel().then((treeData) => {
+      console.log('getAppLevel返回', JSON.stringify(treeData));
       this.setState({
         treeData: treeData as (FinalTreeData & {
           key: string;
@@ -115,7 +111,12 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
         info: {},
         init: false,
       }, () => {
-        if (['getMainToSubData', 'getSubToMainData'].includes(this.state.currentTab)) {
+        if (currentTab === 'getMainToSubData' && iframe) {
+          this.setState({
+            currentTab: 'getSubToMainData',
+          });
+        }
+        if (['getMainToSubData', 'getSubToMainData'].includes(currentTab)) {
           this.getData();
         }
         this.getCanDispatchData();
@@ -148,28 +149,93 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
     });
   };
 
+  private getAppLevel = () => {
+    const {
+      iframe,
+    } = this.state;
+    if (iframe) {
+      console.log('纯iframe模式', iframe);
+      return getIframeAppLevel({
+        title: 'id',
+        key: 'id',
+        url: 'src',
+        name: 'id',
+      });
+    }
+    return getMicroAppLevel({
+      key: 'name',
+      title: 'name',
+      url: 'url',
+      iframe: 'iframe',
+      version: 'version',
+      href: 'href',
+      fullPath: 'fullPath',
+      baseroute: 'baseroute',
+    });
+  };
+
   private getData = () => {
     const {
       currentTab,
       selectInfo,
+      iframe,
+      treeData,
     } = this.state;
     let evalLabel = '';
     let domName = 'micro-app';
     const appName = selectInfo?.name || '';
-    if (appName) {
-      domName += `[name='${appName}']`;
+    if (iframe) {
+      if (currentTab === 'getSubToMainData' && treeData) {
+        const nameLevel = this.findHierarchyNames(treeData, appName) || [];
+        evalLabel = nameLevel.length <= 1
+          ? `JSON.stringify(function () {
+            if (!document.body.getIframeSendData){
+              window.addEventListener('message', event => {
+              document.body.getIframeSendData = event.data;
+            });
+            }
+            return document.body.getIframeSendData;
+        }())`
+          : `JSON.stringify(
+            function () {
+                function listenToIframeMessages(iframeIds) {
+                    function attachMessageListener(windowRef, ids, index) {
+                        if (index >= ids.length - 1) {
+                            if (!document.body.getIframeSendData${appName}){
+                              windowRef.addEventListener('message', (event) => {
+                                document.body.getIframeSendData${appName} = event.data;
+                              });
+                            }
+                        } else {
+                            const nextIframe = windowRef.document.getElementById(ids[index]);
+                            if (nextIframe && nextIframe.contentWindow) {
+                                attachMessageListener(nextIframe.contentWindow, ids, index + 1);
+                            }
+                        }
+                    }
+                    attachMessageListener(window, iframeIds, 0);
+                }
+                listenToIframeMessages(${JSON.stringify(nameLevel)});
+                return document.body.getIframeSendData${appName};
+            }()
+        )`;
+      }
+    } else {
+      if (appName) {
+        domName += `[name='${appName}']`;
+      }
+      evalLabel = currentTab === 'getSubToMainData'
+        ? `JSON.stringify(function () {
+          if (!document.querySelector("${domName}").getSendData){
+            document.querySelector("${domName}").addEventListener('datachange', function (e) {
+                document.querySelector("${domName}").getSendData = e.detail.data;
+                document.querySelector("${domName}").onDataChange;
+            })
+          }
+          return document.querySelector("${domName}").getSendData;
+      }())`
+        : `JSON.stringify(document.querySelector("${domName}").data)`;
     }
-    evalLabel = currentTab === 'getSubToMainData'
-      ? `JSON.stringify(function () {
-        if (!document.querySelector("${domName}").getSendData){
-          document.querySelector("${domName}").addEventListener('datachange', function (e) {
-              document.querySelector("${domName}").getSendData = e.detail.data;
-              document.querySelector("${domName}").onDataChange;
-          })
-        }
-        return document.querySelector("${domName}").getSendData;
-    }())`
-      : `JSON.stringify(document.querySelector("${domName}").data)`;
     chrome.devtools.inspectedWindow.eval(
       evalLabel,
       (res: string) => {
@@ -184,6 +250,39 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
         }
       },
     );
+  };
+
+  private findHierarchyNames = (data: (FinalTreeData & {
+    key: string;
+    title: string;
+  })[], targetName: string): string[] | null => {
+    function search(nodes: (FinalTreeData & {
+      key: string;
+      title: string;
+      children: unknown[];
+    })[], path: string[]): string[] | null {
+      for (const node of nodes) {
+        const currentPath = path.concat(node.name);
+        if (node.name === targetName) {
+          return currentPath;
+        }
+        if (node.children && node.children.length > 0) {
+          const result = search(node.children as (FinalTreeData & {
+            key: string;
+            title: string;
+            children: unknown[];
+          })[], currentPath);
+          if (result) { return result; }
+        }
+      }
+      return null;
+    }
+
+    return search(data as (FinalTreeData & {
+      key: string;
+      title: string;
+      children: unknown[];
+    })[], []);
   };
 
   private getDataDOM = () => {
@@ -478,23 +577,54 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
       selectInfo,
       canDispatchData,
       selectDispatchAppName,
+      iframe,
+      treeData,
     } = this.state;
     const data = this.formatData(dataSource);
     const appName = selectInfo?.name || '';
     let evalLabel = '';
-    if (currentTab === 'sendDataFromSubToMain') {
+    if (iframe) {
+      const nameLevel = this.findHierarchyNames(treeData, appName) || [];
+      console.log('nameLevel', nameLevel);
+      evalLabel = `JSON.stringify(
+        function () {
+            function listenToIframeMessages(iframeIds) {
+                function attachMessageListener(windowRef, ids, index) {
+                    if (index >= ids.length - 1) {
+                      ${currentTab === 'sendDataFromSubToMain'
+    ? `
+                        windowRef.postMessage({
+                          data: ${JSON.stringify(data)}
+                        }, "*");
+                      `
+    : `
+                        windowRef.data = ${JSON.stringify(data)};
+                      `}
+                    } else {
+                        const nextIframe = windowRef.document.getElementById(ids[index]);
+                        if (nextIframe && nextIframe.contentWindow) {
+                            attachMessageListener(nextIframe.contentWindow, ids, index + 1);
+                        }
+                    }
+                }
+                attachMessageListener(window, iframeIds, 0);
+            }
+            listenToIframeMessages(${JSON.stringify(nameLevel)});
+        }()
+    )`;
+    } else if (currentTab === 'sendDataFromSubToMain') {
       evalLabel = canDispatchData.length <= 1
         ? `window.__MICRO_APP_PROXY_WINDOW__.microApp.dispatch(${JSON.stringify(data)})`
         : `JSON.stringify(function (){
-            const rawWindow = window.__MICRO_APP_PROXY_WINDOW__?.rawWindow || [];
-            for (var i = 0; i < rawWindow.length; i++){
-                const oneWindow = rawWindow[i];
-                if (oneWindow.microApp.appName === "${selectDispatchAppName}"){
-                    oneWindow.microApp.dispatch(${JSON.stringify(data)});
-                    break;
-                }
-            }
-        }())`;
+              const rawWindow = window.__MICRO_APP_PROXY_WINDOW__?.rawWindow || [];
+              for (var i = 0; i < rawWindow.length; i++){
+                  const oneWindow = rawWindow[i];
+                  if (oneWindow.microApp.appName === "${selectDispatchAppName}"){
+                      oneWindow.microApp.dispatch(${JSON.stringify(data)});
+                      break;
+                  }
+              }
+          }())`;
     } else {
       let domName = 'micro-app';
       if (appName) {
@@ -626,6 +756,7 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
       canDispatchData,
       lighting,
       init,
+      iframe,
     } = this.state;
     if (!init && treeData.length === 0) {
       return (
@@ -634,6 +765,20 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
             <Space direction="vertical">
               <div>未发现MicroApp微应用</div>
               <Button type="primary" onClick={this.getTree} size="small">重新读取</Button>
+              <Button
+                type="default"
+                onClick={() => {
+                  this.setState({
+                    iframe: true,
+                  }, () => {
+                    this.getTree();
+                  });
+                }}
+                size="small"
+              >
+                检测iframe应用
+
+              </Button>
             </Space>
           )}
           />
@@ -645,10 +790,6 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
       label: string;
       children?: JSX.Element;
     }[] = [{
-      key: 'getMainToSubData',
-      label: '获取父应用传递给此子应用的数据',
-      children: this.getDataDOM(),
-    }, {
       key: 'getSubToMainData',
       label: '获取此子应用传递给父应用的数据',
       children: this.getDataDOM(),
@@ -657,17 +798,30 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
       label: '模拟父应用向此子应用发送数据',
       children: this.sendDataDOM(),
     }];
-    if (canDispatchData.length > 0 && selectInfo && selectInfo.name && canDispatchData.includes(selectInfo.name)) {
+    if (!iframe) {
+      if (canDispatchData.length > 0 && selectInfo && selectInfo.name && canDispatchData.includes(selectInfo.name)) {
+        tabItems.push({
+          key: 'sendDataFromSubToMain',
+          label: '模拟此子应用向父应用发送数据',
+          children: this.sendDataDOM(),
+        });
+      }
+      tabItems.unshift({
+        key: 'getMainToSubData',
+        label: '获取父应用传递给此子应用的数据',
+        children: this.getDataDOM(),
+      });
+      tabItems.push({
+        key: 'openSimulation',
+        label: '此子应用开发环境模拟',
+      });
+    } else {
       tabItems.push({
         key: 'sendDataFromSubToMain',
         label: '模拟此子应用向父应用发送数据',
         children: this.sendDataDOM(),
       });
     }
-    tabItems.push({
-      key: 'openSimulation',
-      label: '此子应用开发环境模拟',
-    });
     let href: string = '';
     if (selectInfo) {
       href = selectInfo.url as string;
@@ -693,18 +847,18 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
             <Col span={20}>
               <Card style={{ marginBottom: 10 }} size="small" title="应用信息" extra={<Button type="link" icon={<RedoOutlined rev={null} />} onClick={this.getTree} />}>
                 <Descriptions size="small">
-                  <Descriptions.Item label="name">{ selectInfo.name }</Descriptions.Item>
+                  <Descriptions.Item label={iframe ? 'id' : 'name'}>{ selectInfo.name }</Descriptions.Item>
                   <Descriptions.Item label="url"><Link copyable href={href} target="_blank">{ selectInfo.url }</Link></Descriptions.Item>
-                  { selectInfo.baseroute && <Descriptions.Item label="baseroute">{ selectInfo.baseroute }</Descriptions.Item> }
-                  { selectInfo.fullPath && <Descriptions.Item label="子路由">{ selectInfo.fullPath }</Descriptions.Item> }
+                  { !iframe && selectInfo.baseroute && <Descriptions.Item label="baseroute">{ selectInfo.baseroute }</Descriptions.Item> }
+                  { !iframe && selectInfo.fullPath && <Descriptions.Item label="子路由">{ selectInfo.fullPath }</Descriptions.Item> }
                   <Descriptions.Item label="高亮范围">
                     <Space>
                       <ColorPicker value={lighting[selectInfo.name] ? lighting[selectInfo.name].color : '#E2231A'} size="small" onChange={this.changeColor} />
                       <Switch checked={lighting[selectInfo.name] ? lighting[selectInfo.name].checked : false} onChange={this.changeLighting} />
                     </Space>
                   </Descriptions.Item>
-                  { !(/^0\./u).test(selectInfo.version as string) && <Descriptions.Item label="iframe模式">{ selectInfo.iframe as string || 'false' }</Descriptions.Item> }
-                  <Descriptions.Item label="MicroApp版本">{ selectInfo.version }</Descriptions.Item>
+                  { !iframe && !(/^0\./u).test(selectInfo.version as string) && <Descriptions.Item label="iframe模式">{ selectInfo.iframe as string || 'false' }</Descriptions.Item> }
+                  { !iframe && <Descriptions.Item label="MicroApp版本">{ selectInfo.version }</Descriptions.Item> }
                 </Descriptions>
               </Card>
               <Card size="small">
