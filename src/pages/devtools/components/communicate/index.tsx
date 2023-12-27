@@ -909,17 +909,16 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
                   <Popover title={(
                     <div>
                       <p>选择模式：</p>
-                      <Radio.Group onChange={e => this.changeType(e.target.value)} value={iframe ? 'iFrame' : 'MicroApp'}>
+                      <Radio.Group onChange={e => this.changeType(e.target.value)} value={iframe ? 'iframe' : 'MicroApp'}>
                         <Space direction="vertical">
                           <Radio value="MicroApp">MicroApp</Radio>
-                          <Radio value="iframe">iFrame</Radio>
+                          <Radio value="iframe">iframe</Radio>
                         </Space>
                       </Radio.Group>
                     </div>
                   )}
                   >
-                    <Tag>{ iframe ? 'iframe' : 'MicroApp' }</Tag>
-
+                    <Tag style={{ cursor: 'pointer' }}>{ iframe ? 'iframe' : 'MicroApp' }</Tag>
                   </Popover>
                 </Space>
               )}
