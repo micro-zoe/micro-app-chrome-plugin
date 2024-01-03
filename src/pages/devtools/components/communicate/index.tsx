@@ -105,6 +105,7 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
       href: 'href',
       fullPath: 'fullPath',
       baseroute: 'baseroute',
+      tagName: 'tagName',
     }).then((treeData) => {
       console.log('microAppLevel返回', treeData);
       this.setState({
@@ -115,9 +116,6 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
         info: {},
         init: false,
       }, () => {
-        if (['getMainToSubData', 'getSubToMainData'].includes(this.state.currentTab)) {
-          this.getData();
-        }
         this.getCanDispatchData();
       });
       const allAppInfo = this.getAllAppInfo(treeData);
@@ -142,6 +140,9 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
           selectInfo: allAppInfo[0].info,
         });
       }
+      if (['getMainToSubData', 'getSubToMainData'].includes(this.state.currentTab)) {
+        this.getData();
+      }
       return null;
     }).catch((error: unknown) => {
       console.error('err', error);
@@ -154,7 +155,7 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
       selectInfo,
     } = this.state;
     let evalLabel = '';
-    let domName = 'micro-app';
+    let domName = selectInfo?.tagName || 'micro-app';
     const appName = selectInfo?.name || '';
     if (appName) {
       domName += `[name='${appName}']`;
@@ -173,7 +174,7 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
     chrome.devtools.inspectedWindow.eval(
       evalLabel,
       (res: string) => {
-        if (res) {
+        if (res && res !== 'null') {
           this.setState({
             info: JSON.parse(res),
           });
@@ -337,7 +338,7 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
           validateStatus={validateStatus}
           help={jsonInputError ? '请输入标准JSON格式数据' : ''}
         >
-          { showKVType
+          {showKVType
             ? (
               <Table
                 columns={[{
@@ -415,15 +416,15 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
                 defaultValue={JSON.stringify(data)}
                 onChange={e => this.changeTextAreaData(e.target.value)}
               />
-            ) }
+            )}
         </Form.Item>
-        { JSON.stringify(data) !== '{}' && (
+        {JSON.stringify(data) !== '{}' && (
           <Form.Item
             label="最终传参"
           >
-            <Text copyable>{ JSON.stringify(data) }</Text>
+            <Text copyable>{JSON.stringify(data)}</Text>
           </Form.Item>
-        ) }
+        )}
         <div style={{ textAlign: 'center' }}>
           <Button type="primary" onClick={this.sendData} style={{ width: 100 }} disabled={JSON.stringify(data) === '{}'}>发送</Button>
         </div>
@@ -496,7 +497,7 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
             }
         }())`;
     } else {
-      let domName = 'micro-app';
+      let domName = selectInfo?.tagName || 'micro-app';
       if (appName) {
         domName += `[name='${appName}']`;
       }
@@ -689,22 +690,22 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
               />
             </Card>
           </Col>
-          { selectInfo && (
+          {selectInfo && (
             <Col span={20}>
               <Card style={{ marginBottom: 10 }} size="small" title="应用信息" extra={<Button type="link" icon={<RedoOutlined rev={null} />} onClick={this.getTree} />}>
                 <Descriptions size="small">
-                  <Descriptions.Item label="name">{ selectInfo.name }</Descriptions.Item>
-                  <Descriptions.Item label="url"><Link copyable href={href} target="_blank">{ selectInfo.url }</Link></Descriptions.Item>
-                  { selectInfo.baseroute && <Descriptions.Item label="baseroute">{ selectInfo.baseroute }</Descriptions.Item> }
-                  { selectInfo.fullPath && <Descriptions.Item label="子路由">{ selectInfo.fullPath }</Descriptions.Item> }
+                  <Descriptions.Item label="name">{selectInfo.name}</Descriptions.Item>
+                  <Descriptions.Item label="url"><Link copyable href={href} target="_blank">{selectInfo.url}</Link></Descriptions.Item>
+                  {selectInfo.baseroute && <Descriptions.Item label="baseroute">{selectInfo.baseroute}</Descriptions.Item>}
+                  {selectInfo.fullPath && <Descriptions.Item label="子路由">{selectInfo.fullPath}</Descriptions.Item>}
                   <Descriptions.Item label="高亮范围">
                     <Space>
                       <ColorPicker value={lighting[selectInfo.name] ? lighting[selectInfo.name].color : '#E2231A'} size="small" onChange={this.changeColor} />
                       <Switch checked={lighting[selectInfo.name] ? lighting[selectInfo.name].checked : false} onChange={this.changeLighting} />
                     </Space>
                   </Descriptions.Item>
-                  { !(/^0\./u).test(selectInfo.version as string) && <Descriptions.Item label="iframe模式">{ selectInfo.iframe as string || 'false' }</Descriptions.Item> }
-                  <Descriptions.Item label="MicroApp版本">{ selectInfo.version }</Descriptions.Item>
+                  {!(/^0\./u).test(selectInfo.version as string) && <Descriptions.Item label="iframe模式">{selectInfo.iframe as string || 'false'}</Descriptions.Item>}
+                  <Descriptions.Item label="MicroApp版本">{selectInfo.version}</Descriptions.Item>
                 </Descriptions>
               </Card>
               <Card size="small">
@@ -740,13 +741,16 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
                         if (activityTab === 'sendDataFromSubToMain') {
                           this.getCanDispatchData();
                         }
+                        if (['getMainToSubData', 'getSubToMainData'].includes(activityTab)) {
+                          this.getData();
+                        }
                       });
                     }
                   }}
                 />
               </Card>
             </Col>
-          ) }
+          )}
         </Row>
       </div>
     );

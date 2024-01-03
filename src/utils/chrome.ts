@@ -79,6 +79,7 @@ export const getMicroAppLevel = (mapping: object = {}): Promise<FinalTreeData[]>
                                   ...getElementAttributes(childNode),
                                   version,
                                   ...router,
+                                  tagName: childNode.tagName.toLowerCase()
                               },
                               hasChildren: JSON.stringify(childHierarchy) !== '{}',
                               children: childHierarchy,
