@@ -1,8 +1,11 @@
+/* eslint-disable etc/no-commented-out-code */
 export const HEADER_TAB_LIST = [
   { name: 'ENV_VALUE_VIEWER', label: 'Environment' },
   { name: 'COMMUNICATE', label: 'Communicate' },
-  { name: 'VIEW_APP', label: 'View' },
-  { name: 'ROUTE_MATCH', label: 'Route' },
+  /*
+   * { name: 'VIEW_APP', label: 'View' },
+   * { name: 'ROUTE_MATCH', label: 'Route' },
+   */
 ];
 
 export const MICRO_APP_ENV_INFO = {

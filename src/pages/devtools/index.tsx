@@ -40,9 +40,11 @@ class DevToolsPage extends React.PureComponent<DevToolsPageProps, DevToolsPageSt
         return microAppInfo;
       }())`,
       (res: string) => {
-        const env = decodeJSON<DevToolsMicroAppInfo['env']>(res);
-        if (env) {
-          this.setState({ info: { currentMicroApp: { env } } });
+        if (res && res !== 'undefined' && res !== 'null') {
+          const env = decodeJSON<DevToolsMicroAppInfo['env']>(res);
+          if (env) {
+            this.setState({ info: { currentMicroApp: { env } } });
+          }
         }
       },
     );
