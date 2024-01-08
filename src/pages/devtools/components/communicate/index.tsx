@@ -722,7 +722,11 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
                         url,
                         prefix: `${prefix}//`,
                         data: JSON.stringify([]),
+                        ver: '1.0',
                       };
+                      if (selectInfo.version && selectInfo.version.startsWith('0')) {
+                        params.ver = '0.8';
+                      }
                       chrome.tabs.create({
                         url: `simulation.html?${encodeURIComponent(JSON.stringify(params))}`,
                       });
