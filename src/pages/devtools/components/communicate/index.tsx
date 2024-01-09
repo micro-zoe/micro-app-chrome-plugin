@@ -11,6 +11,7 @@ import {
   Form,
   Input,
   message,
+  Popover,
   Row,
   Select,
   Space,
@@ -20,6 +21,7 @@ import {
   Tree,
   Typography,
 } from 'antd';
+import moment from 'moment';
 import React from 'react';
 import {
   CopyToClipboard,
@@ -60,12 +62,19 @@ interface CommunicateState {
     };
   };
   init: boolean;
+  history: HistoryData[];
 }
 
 type AllAppInfoData = {
   name: string;
   info: FinalTreeData;
 };
+
+type HistoryData = {
+  time: number;
+  content: unknown;
+  type: string;
+}
 
 class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateState> {
   public state: CommunicateState = {
@@ -86,6 +95,7 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
     selectDispatchAppName: '',
     lighting: {},
     init: true,
+    history: [],
   };
 
   public componentDidMount() {
@@ -126,6 +136,8 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
             inAppInfo = true;
             this.setState({
               selectInfo: el.info,
+            }, () => {
+              this.loadHistory();
             });
             break;
           }
@@ -133,11 +145,15 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
         if (!inAppInfo && allAppInfo.length > 0) {
           this.setState({
             selectInfo: allAppInfo[0].info,
+          }, () => {
+            this.loadHistory();
           });
         }
       } else if (allAppInfo.length > 0) {
         this.setState({
           selectInfo: allAppInfo[0].info,
+        }, () => {
+          this.loadHistory();
         });
       }
       if (['getMainToSubData', 'getSubToMainData'].includes(this.state.currentTab)) {
@@ -178,6 +194,9 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
           this.setState({
             info: JSON.parse(res),
           });
+          if (res !== '{}') {
+            this.saveHistory(JSON.parse(res));
+          }
         } else {
           this.setState({
             info: {},
@@ -187,20 +206,112 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
     );
   };
 
+  private saveHistory = (content: unknown) => {
+    const {
+      selectInfo,
+      currentTab,
+    } = this.state;
+    const oldHistory: string | null = localStorage.getItem(`${currentTab}_${selectInfo?.name}`);
+    let result: HistoryData[] = [];
+    if (!oldHistory) {
+      result = [{
+        time: moment().valueOf(),
+        content,
+        type: currentTab,
+      }];
+    } else {
+      let history: HistoryData[] = JSON.parse(oldHistory).filter((el: HistoryData) => JSON.stringify(el.content) !== JSON.stringify(content));
+      if (history.length >= 8) {
+        history = history.slice(0, 7);
+      }
+      result = [{
+        time: moment().valueOf(),
+        content,
+        type: currentTab,
+      }, ...history];
+    }
+    localStorage.setItem(`${currentTab}_${selectInfo?.name}`, JSON.stringify(result));
+    this.setState({
+      history: result,
+    });
+  };
+
+  private loadHistory = () => {
+    const {
+      currentTab,
+      selectInfo,
+    } = this.state;
+    const history = localStorage.getItem(`${currentTab}_${selectInfo?.name}`);
+    this.setState({
+      history: history ? JSON.parse(history) : [],
+    });
+  };
+
+  private cleanHistory = () => {
+    const {
+      selectInfo,
+      currentTab,
+    } = this.state;
+    localStorage.removeItem(`${currentTab}_${selectInfo?.name}`);
+    this.setState({
+      history: [],
+    });
+  };
+
   private getDataDOM = () => {
     const {
       info,
+      history,
     } = this.state;
     return (
       <div>
-        <Space>
-          <Button size="small" type="primary" icon={<LinkOutlined rev={null} />} onClick={this.getData}>重新获取</Button>
-          <CopyToClipboard
-            text={JSON.stringify(info)}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Space>
+            <Button size="small" type="primary" icon={<LinkOutlined rev={null} />} onClick={this.getData}>重新获取</Button>
+            <CopyToClipboard
+              text={JSON.stringify(info)}
+            >
+              <Button size="small" icon={<CopyOutlined rev={null} />}>复制</Button>
+            </CopyToClipboard>
+          </Space>
+          <Popover
+            placement="left"
+            trigger="click"
+            title={(
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>历史记录</div>
+                <Button size="small" type="link" onClick={this.cleanHistory}>清空</Button>
+              </div>
+)}
+            content={(
+              <div>
+                <Table
+                  size="small"
+                  columns={[{
+                    title: '序号',
+                    dataIndex: 'index',
+                    render: (text, record, index) => index + 1,
+                  }, {
+                    title: '内容',
+                    dataIndex: 'content',
+                    render: text => <Text copyable>{ JSON.stringify(text) }</Text>,
+                  }, {
+                    title: '时间',
+                    dataIndex: 'time',
+                    render: text => moment(text).format('YYYY-MM-DD HH:mm:ss'),
+                  }]}
+                  pagination={false}
+                  dataSource={history}
+                  locale={{
+                    emptyText: '暂无记录',
+                  }}
+                />
+              </div>
+            )}
           >
-            <Button size="small" icon={<CopyOutlined rev={null} />}>复制</Button>
-          </CopyToClipboard>
-        </Space>
+            <Button type="link">历史记录</Button>
+          </Popover>
+        </div>
         <ReactJson
           style={{ overflowY: 'scroll', overflowX: 'hidden', height: 200, marginTop: 10, border: 'solid 1px #000' }}
           src={info}
@@ -312,17 +423,26 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
     );
   };
 
+  private writeHistoryData = (record: HistoryData) => {
+    console.log('record', record);
+    this.setState({
+      dataSource: record.content as KeyValueData[],
+    });
+  };
+
   private sendDataDOM = () => {
     const {
       showKVType,
       jsonInputError,
       dataSource,
+      history,
     } = this.state;
     const data = this.formatData(dataSource);
     let validateStatus: '' | 'error' = '';
     if (!showKVType && jsonInputError) {
       validateStatus = 'error';
     }
+    console.log('history', history);
     return (
       <Form
         labelCol={{ span: 6 }}
@@ -427,6 +547,54 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
         ) }
         <div style={{ textAlign: 'center' }}>
           <Button type="primary" onClick={this.sendData} style={{ width: 100 }} disabled={JSON.stringify(data) === '{}'}>发送</Button>
+          <Popover
+            placement="top"
+            trigger="click"
+            title={(
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>历史记录</div>
+                <Button size="small" type="link" onClick={this.cleanHistory}>清空</Button>
+              </div>
+)}
+            content={() => {
+              const columns = [{
+                title: '序号',
+                dataIndex: 'index',
+                render: (text: unknown, record: unknown, index: number) => index + 1,
+              }, {
+                title: '内容',
+                dataIndex: 'content',
+                render: (text: unknown) => <Text copyable>{ JSON.stringify(this.formatData(text as KeyValueData[])) }</Text>,
+              }, {
+                title: '时间',
+                dataIndex: 'time',
+                render: (text: unknown) => moment(text as number).format('YYYY-MM-DD HH:mm:ss'),
+              }];
+              if (showKVType) {
+                columns.push({
+                  title: '操作',
+                  dataIndex: 'edit',
+                  render: (text: unknown, record: unknown) => <Button type="link" size="small" onClick={() => this.writeHistoryData(record as HistoryData)}>填入</Button>,
+                });
+              }
+              return (
+                <div>
+                  <Table
+                    rowKey="time"
+                    size="small"
+                    columns={columns}
+                    pagination={false}
+                    dataSource={history}
+                    locale={{
+                      emptyText: '暂无记录',
+                    }}
+                  />
+                </div>
+              );
+            }}
+          >
+            <Button type="link" style={{ marginLeft: 10 }}>历史记录</Button>
+          </Popover>
         </div>
       </Form>
     );
@@ -507,6 +675,7 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
       evalLabel,
       () => {
         message.success('发送成功');
+        this.saveHistory(dataSource);
       },
     );
   };
@@ -534,6 +703,7 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
       this.setState({
         selectInfo: info.node as FinalTreeData,
       }, () => {
+        this.loadHistory();
         if (['getMainToSubData', 'getSubToMainData'].includes(currentTab)) {
           this.getData();
         }
@@ -741,7 +911,9 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
                           value: '',
                           valueType: 'string',
                         }],
+                        history: [],
                       }, () => {
+                        this.loadHistory();
                         if (activityTab === 'sendDataFromSubToMain') {
                           this.getCanDispatchData();
                         }
