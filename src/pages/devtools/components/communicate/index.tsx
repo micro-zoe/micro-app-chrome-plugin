@@ -7,6 +7,7 @@ import {
   Col,
   ColorPicker,
   Descriptions,
+  Dropdown,
   Empty,
   Form,
   Input,
@@ -282,7 +283,7 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
                 <div>历史记录</div>
                 <Button size="small" type="link" onClick={this.cleanHistory}>清空</Button>
               </div>
-)}
+            )}
             content={(
               <div>
                 <Table
@@ -294,7 +295,7 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
                   }, {
                     title: '内容',
                     dataIndex: 'content',
-                    render: text => <Text copyable>{ JSON.stringify(text) }</Text>,
+                    render: text => <Text copyable>{JSON.stringify(text)}</Text>,
                   }, {
                     title: '时间',
                     dataIndex: 'time',
@@ -424,7 +425,6 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
   };
 
   private writeHistoryData = (record: HistoryData) => {
-    console.log('record', record);
     this.setState({
       dataSource: record.content as KeyValueData[],
     });
@@ -442,7 +442,6 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
     if (!showKVType && jsonInputError) {
       validateStatus = 'error';
     }
-    console.log('history', history);
     return (
       <Form
         labelCol={{ span: 6 }}
@@ -458,7 +457,7 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
           validateStatus={validateStatus}
           help={jsonInputError ? '请输入标准JSON格式数据' : ''}
         >
-          { showKVType
+          {showKVType
             ? (
               <Table
                 columns={[{
@@ -536,66 +535,88 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
                 defaultValue={JSON.stringify(data)}
                 onChange={e => this.changeTextAreaData(e.target.value)}
               />
-            ) }
+            )}
         </Form.Item>
-        { JSON.stringify(data) !== '{}' && (
+        {JSON.stringify(data) !== '{}' && (
           <Form.Item
             label="最终传参"
           >
-            <Text copyable>{ JSON.stringify(data) }</Text>
+            <Text copyable>{JSON.stringify(data)}</Text>
           </Form.Item>
-        ) }
-        <div style={{ textAlign: 'center' }}>
-          <Button type="primary" onClick={this.sendData} style={{ width: 100 }} disabled={JSON.stringify(data) === '{}'}>发送</Button>
-          <Popover
-            placement="top"
-            trigger="click"
-            title={(
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>历史记录</div>
-                <Button size="small" type="link" onClick={this.cleanHistory}>清空</Button>
-              </div>
-)}
-            content={() => {
-              const columns = [{
-                title: '序号',
-                dataIndex: 'index',
-                render: (text: unknown, record: unknown, index: number) => index + 1,
-              }, {
-                title: '内容',
-                dataIndex: 'content',
-                render: (text: unknown) => <Text copyable>{ JSON.stringify(this.formatData(text as KeyValueData[])) }</Text>,
-              }, {
-                title: '时间',
-                dataIndex: 'time',
-                render: (text: unknown) => moment(text as number).format('YYYY-MM-DD HH:mm:ss'),
-              }];
-              if (showKVType) {
-                columns.push({
-                  title: '操作',
-                  dataIndex: 'edit',
-                  render: (text: unknown, record: unknown) => <Button type="link" size="small" onClick={() => this.writeHistoryData(record as HistoryData)}>填入</Button>,
-                });
-              }
-              return (
-                <div>
-                  <Table
-                    rowKey="time"
-                    size="small"
-                    columns={columns}
-                    pagination={false}
-                    dataSource={history}
-                    locale={{
-                      emptyText: '暂无记录',
-                    }}
-                  />
-                </div>
-              );
-            }}
-          >
-            <Button type="link" style={{ marginLeft: 10 }}>历史记录</Button>
-          </Popover>
-        </div>
+        )}
+        <Form.Item label="操作">
+          <Row>
+            <Col>
+              <Dropdown.Button
+                type="primary"
+                onClick={this.sendData}
+                disabled={JSON.stringify(data) === '{}'}
+                menu={{
+                  items: [{
+                    label: '发送并重新加载',
+                    key: '1',
+                  }],
+                  onClick: () => {
+                    this.sendData();
+                    this.reloadApp();
+                  },
+                }}
+              >
+                发送
+              </Dropdown.Button>
+            </Col>
+            <Col>
+              <Popover
+                placement="top"
+                trigger="click"
+                title={(
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>历史记录</div>
+                    <Button size="small" type="link" onClick={this.cleanHistory}>清空</Button>
+                  </div>
+                )}
+                content={() => {
+                  const columns = [{
+                    title: '序号',
+                    dataIndex: 'index',
+                    render: (text: unknown, record: unknown, index: number) => index + 1,
+                  }, {
+                    title: '内容',
+                    dataIndex: 'content',
+                    render: (text: unknown) => <Text copyable>{JSON.stringify(this.formatData(text as KeyValueData[]))}</Text>,
+                  }, {
+                    title: '时间',
+                    dataIndex: 'time',
+                    render: (text: unknown) => moment(text as number).format('YYYY-MM-DD HH:mm:ss'),
+                  }];
+                  if (showKVType) {
+                    columns.push({
+                      title: '操作',
+                      dataIndex: 'edit',
+                      render: (text: unknown, record: unknown) => <Button type="link" size="small" onClick={() => this.writeHistoryData(record as HistoryData)}>填入</Button>,
+                    });
+                  }
+                  return (
+                    <div>
+                      <Table
+                        rowKey="time"
+                        size="small"
+                        columns={columns}
+                        pagination={false}
+                        dataSource={history}
+                        locale={{
+                          emptyText: '暂无记录',
+                        }}
+                      />
+                    </div>
+                  );
+                }}
+              >
+                <Button type="link">历史记录</Button>
+              </Popover>
+            </Col>
+          </Row>
+        </Form.Item>
       </Form>
     );
   };
@@ -734,7 +755,6 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
     const {
       selectInfo,
     } = this.state;
-    console.log('修改颜色', color, hex);
     if (selectInfo) {
       this.setState(prevState => ({
         lighting: {
@@ -782,11 +802,25 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
             }
         }
     }())`;
-      console.log('evalLabel', evalLabel);
       chrome.devtools.inspectedWindow.eval(
         evalLabel,
       );
     }
+  };
+
+  private reloadApp = () => {
+    const {
+      selectInfo,
+    } = this.state;
+    let domName = selectInfo?.tagName || 'micro-app';
+    const appName = selectInfo?.name || '';
+    if (appName) {
+      domName += `[name='${appName}']`;
+    }
+    const evalLabel = `document.querySelector("${domName}").reload()`;
+    chrome.devtools.inspectedWindow.eval(
+      evalLabel,
+    );
   };
 
   public render() {
@@ -860,22 +894,22 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
               />
             </Card>
           </Col>
-          { selectInfo && (
+          {selectInfo && (
             <Col span={20}>
-              <Card style={{ marginBottom: 10 }} size="small" title="应用信息" extra={<Button type="link" icon={<RedoOutlined rev={null} />} onClick={this.getTree} />}>
+              <Card style={{ marginBottom: 10 }} size="small" title="应用信息" extra={<Button type="link" icon={<RedoOutlined rev={null} />} onClick={this.reloadApp}>重新加载</Button>}>
                 <Descriptions size="small">
-                  <Descriptions.Item label="name">{ selectInfo.name }</Descriptions.Item>
-                  <Descriptions.Item label="url"><Link copyable href={href} target="_blank">{ selectInfo.url }</Link></Descriptions.Item>
-                  { selectInfo.baseroute && <Descriptions.Item label="baseroute">{ selectInfo.baseroute }</Descriptions.Item> }
-                  { selectInfo.fullPath && <Descriptions.Item label="子路由">{ selectInfo.fullPath }</Descriptions.Item> }
+                  <Descriptions.Item label="name">{selectInfo.name}</Descriptions.Item>
+                  <Descriptions.Item label="url"><Link copyable href={href} target="_blank">{selectInfo.url}</Link></Descriptions.Item>
+                  {selectInfo.baseroute && <Descriptions.Item label="baseroute">{selectInfo.baseroute}</Descriptions.Item>}
+                  {selectInfo.fullPath && <Descriptions.Item label="子路由">{selectInfo.fullPath}</Descriptions.Item>}
                   <Descriptions.Item label="高亮范围">
                     <Space>
                       <ColorPicker value={lighting[selectInfo.name] ? lighting[selectInfo.name].color : '#E2231A'} size="small" onChange={this.changeColor} />
                       <Switch checked={lighting[selectInfo.name] ? lighting[selectInfo.name].checked : false} onChange={this.changeLighting} />
                     </Space>
                   </Descriptions.Item>
-                  { !(/^0\./u).test(selectInfo.version as string) && <Descriptions.Item label="iframe模式">{ selectInfo.iframe as string || 'false' }</Descriptions.Item> }
-                  <Descriptions.Item label="MicroApp版本">{ selectInfo.version }</Descriptions.Item>
+                  {!(/^0\./u).test(selectInfo.version as string) && <Descriptions.Item label="iframe模式">{selectInfo.iframe as string || 'false'}</Descriptions.Item>}
+                  <Descriptions.Item label="MicroApp版本">{selectInfo.version}</Descriptions.Item>
                 </Descriptions>
               </Card>
               <Card size="small">
@@ -926,7 +960,7 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
                 />
               </Card>
             </Col>
-          ) }
+          )}
         </Row>
       </div>
     );
