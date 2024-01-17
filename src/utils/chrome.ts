@@ -16,6 +16,9 @@ export const getURLCookies = (url: string) => new Promise<chrome.cookies.Cookie[
     });
 });
 
+/**
+ * 微应用树形结构单条数据
+ */
 interface OneTreeData {
   [name: string]: {
     attributes: {
@@ -57,6 +60,11 @@ const objectToArray = (obj: OneTreeData, mapping: object): FinalTreeData[] => {
   return result;
 };
 
+/**
+ * 从页面获取微应用层级结构
+ * @param mapping 数据映射，需要获取的参数名
+ * @returns 树形结构
+ */
 export const getMicroAppLevel = (mapping: object = {}): Promise<FinalTreeData[]> => new Promise<FinalTreeData[]>((resolve) => {
   chrome.devtools.inspectedWindow.eval(
     `JSON.stringify(

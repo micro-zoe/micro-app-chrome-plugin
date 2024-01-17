@@ -1,3 +1,4 @@
+/* eslint-disable valid-jsdoc */
 /* eslint-disable no-console */
 import { CopyOutlined, DeleteOutlined, LinkOutlined, RedoOutlined } from '@ant-design/icons';
 import {
@@ -44,33 +45,76 @@ interface KeyValueData {
 }
 
 interface CommunicateState {
+  /**
+   * JSON展示面版信息
+   */
   info: { [key: string]: string | number };
+  /**
+   * 当前选择Tab
+   */
   currentTab: string;
+  /**
+   * 展示Key-Value模式
+   */
   showKVType: boolean;
+  /**
+   * 发送数据
+   */
   dataSource: KeyValueData[];
+  /**
+   * JSON校验错误信息
+   */
   jsonInputError: boolean;
+  /**
+   * 微前端树形层级结构
+   */
   treeData: (FinalTreeData & {
     key: string;
     title: string;
   })[];
+  /**
+   * 能够子应用发送给父应用的应用
+   * Tips:并不是所有子应用都可发数据给父应用，在iframe模式下均可以，在with模式下仅最后加载的应用可以
+   */
   canDispatchData: unknown[];
+  /**
+   * 发送数据的应用名称
+   */
   selectDispatchAppName: string;
+  /**
+   * 树形结构选择的微应用信息
+   */
   selectInfo: FinalTreeData | null;
+  /**
+   * 高亮信息数据缓存
+   */
   lighting: {
     [name: string]: {
       checked: boolean;
       color: string;
     };
   };
+  /**
+   * 是否首次初始化
+   */
   init: boolean;
+  /**
+   * 历史记录数据
+   */
   history: HistoryData[];
 }
 
+/**
+ * 平铺展示所有微应用，做数据处理用
+ */
 type AllAppInfoData = {
   name: string;
   info: FinalTreeData;
 };
 
+/**
+ * 历史记录数据格式
+ */
 type HistoryData = {
   time: number;
   content: unknown;
@@ -89,9 +133,9 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
       value: '',
       valueType: 'string',
     }],
-    jsonInputError: false, // 手动输入的json格式错误
+    jsonInputError: false,
     treeData: [],
-    selectInfo: null, // 选择的子应用信息
+    selectInfo: null,
     canDispatchData: [],
     selectDispatchAppName: '',
     lighting: {},
@@ -103,6 +147,9 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
     this.getTree();
   }
 
+  /**
+   * 获取页面微应用结构
+   */
   private getTree = () => {
     const {
       selectInfo,
@@ -166,6 +213,9 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
     });
   };
 
+  /**
+   * 从页面获取数据
+   */
   private getData = () => {
     const {
       currentTab,
@@ -207,6 +257,10 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
     );
   };
 
+  /**
+   * 保存历史数据至localStorage
+   * @param content 待保存的内容
+   */
   private saveHistory = (content: unknown) => {
     const {
       selectInfo,
@@ -237,6 +291,9 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
     });
   };
 
+  /**
+   * 从localStorage里读取历史数据
+   */
   private loadHistory = () => {
     const {
       currentTab,
@@ -259,6 +316,9 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
     });
   };
 
+  /**
+   * 获取数据渲染
+   */
   private getDataDOM = () => {
     const {
       info,
@@ -295,7 +355,7 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
                   }, {
                     title: '内容',
                     dataIndex: 'content',
-                    render: text => <Text copyable>{JSON.stringify(text)}</Text>,
+                    render: text => <Text copyable>{ JSON.stringify(text) }</Text>,
                   }, {
                     title: '时间',
                     dataIndex: 'time',
@@ -322,10 +382,17 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
     );
   };
 
+  /**
+   * 生成随机ID，用于Table的key
+   */
   private randomId(): number {
     return Math.floor(Math.random() * 10000);
   }
 
+  /**
+   * 修改传参数据并校验
+   * @param value 待修改的数据
+   */
   private changeTextAreaData = (value: string): void => {
     try {
       const newValue = JSON.parse(value || '{}');
@@ -364,6 +431,11 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
     }
   };
 
+  /**
+   * 将Table的dataSource格式数据转换成标准传输数据
+   * @param dataSource Table数据
+   * @returns 标准数据
+   */
   private formatData = (dataSource: KeyValueData[]): {
     [key: string]: string | number | boolean;
   } => {
@@ -388,6 +460,10 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
     return data;
   };
 
+  /**
+   * 获取能够向父应用发送数据的子应用
+   * Tips:并不是所有子应用都可发数据给父应用，在iframe模式下均可以，在with模式下仅最后加载的应用可以
+   */
   private getCanDispatchData = () => {
     const {
       selectInfo,
@@ -424,12 +500,19 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
     );
   };
 
+  /**
+   * 快速将历史数据填入表格
+   * @param record 单条历史数据
+   */
   private writeHistoryData = (record: HistoryData) => {
     this.setState({
       dataSource: record.content as KeyValueData[],
     });
   };
 
+  /**
+   * 发送数据渲染
+   */
   private sendDataDOM = () => {
     const {
       showKVType,
@@ -457,7 +540,7 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
           validateStatus={validateStatus}
           help={jsonInputError ? '请输入标准JSON格式数据' : ''}
         >
-          {showKVType
+          { showKVType
             ? (
               <Table
                 columns={[{
@@ -535,15 +618,15 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
                 defaultValue={JSON.stringify(data)}
                 onChange={e => this.changeTextAreaData(e.target.value)}
               />
-            )}
+            ) }
         </Form.Item>
-        {JSON.stringify(data) !== '{}' && (
+        { JSON.stringify(data) !== '{}' && (
           <Form.Item
             label="最终传参"
           >
-            <Text copyable>{JSON.stringify(data)}</Text>
+            <Text copyable>{ JSON.stringify(data) }</Text>
           </Form.Item>
-        )}
+        ) }
         <Form.Item label="操作">
           <Row>
             <Col>
@@ -583,7 +666,7 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
                   }, {
                     title: '内容',
                     dataIndex: 'content',
-                    render: (text: unknown) => <Text copyable>{JSON.stringify(this.formatData(text as KeyValueData[]))}</Text>,
+                    render: (text: unknown) => <Text copyable>{ JSON.stringify(this.formatData(text as KeyValueData[])) }</Text>,
                   }, {
                     title: '时间',
                     dataIndex: 'time',
@@ -621,12 +704,20 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
     );
   };
 
+  /**
+   * 删除某行数据
+   * @param e 待删除的信息
+   */
   private deleteOneData = (e: KeyValueData): void => {
     this.setState(prevState => ({
       dataSource: prevState.dataSource.filter(el => el.id !== e.id),
     }));
   };
 
+  /**
+   * 将某行设置的数据转换成标准格式
+   * @param e 行数据
+   */
   private changeData = (e: {
     type: 'key' | 'value' | 'checked' | 'valueType';
     value: string | number | boolean;
@@ -661,6 +752,9 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
     });
   };
 
+  /**
+   * 从页面发送数据
+   */
   private sendData = () => {
     const {
       currentTab,
@@ -701,6 +795,11 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
     );
   };
 
+  /**
+   * 平铺递归处理微应用树形结构数据
+   * @param data 树形数据
+   * @returns 平铺后的数据
+   */
   private getAllAppInfo = (data: FinalTreeData[]): AllAppInfoData[] => {
     let result: AllAppInfoData[] = [];
     for (const el of data) {
@@ -716,6 +815,11 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
     return result;
   };
 
+  /**
+   * 选择应用
+   * @param selectedKeys 已选择的key
+   * @param info 选择的数据
+   */
   private selectTree = (selectedKeys: (string | number)[], info: { event: 'select'; selected: boolean; node: unknown; selectedNodes: unknown[]; nativeEvent: MouseEvent }) => {
     const {
       currentTab,
@@ -732,6 +836,10 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
     }
   };
 
+  /**
+   * 修改高亮状态
+   * @param checked 是否高亮
+   */
   private changeLighting = (checked: boolean) => {
     const {
       selectInfo,
@@ -751,6 +859,11 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
     }
   };
 
+  /**
+   * 修改高亮边框颜色
+   * @param color 颜色
+   * @param hex HEX颜色
+   */
   private changeColor = (color: unknown, hex: string) => {
     const {
       selectInfo,
@@ -770,6 +883,9 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
     }
   };
 
+  /**
+   * 页面应用标记高亮
+   */
   private doLighting = () => {
     const {
       lighting,
@@ -808,6 +924,9 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
     }
   };
 
+  /**
+   * 重新加载微应用
+   */
   private reloadApp = () => {
     const {
       selectInfo,
@@ -894,22 +1013,22 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
               />
             </Card>
           </Col>
-          {selectInfo && (
+          { selectInfo && (
             <Col span={20}>
               <Card style={{ marginBottom: 10 }} size="small" title="应用信息" extra={<Button type="link" icon={<RedoOutlined rev={null} />} onClick={this.reloadApp}>重新加载</Button>}>
                 <Descriptions size="small">
-                  <Descriptions.Item label="name">{selectInfo.name}</Descriptions.Item>
-                  <Descriptions.Item label="url"><Link copyable href={href} target="_blank">{selectInfo.url}</Link></Descriptions.Item>
-                  {selectInfo.baseroute && <Descriptions.Item label="baseroute">{selectInfo.baseroute}</Descriptions.Item>}
-                  {selectInfo.fullPath && <Descriptions.Item label="子路由">{selectInfo.fullPath}</Descriptions.Item>}
+                  <Descriptions.Item label="name">{ selectInfo.name }</Descriptions.Item>
+                  <Descriptions.Item label="url"><Link copyable href={href} target="_blank">{ selectInfo.url }</Link></Descriptions.Item>
+                  { selectInfo.baseroute && <Descriptions.Item label="baseroute">{ selectInfo.baseroute }</Descriptions.Item> }
+                  { selectInfo.fullPath && <Descriptions.Item label="子路由">{ selectInfo.fullPath }</Descriptions.Item> }
                   <Descriptions.Item label="高亮范围">
                     <Space>
                       <ColorPicker value={lighting[selectInfo.name] ? lighting[selectInfo.name].color : '#E2231A'} size="small" onChange={this.changeColor} />
                       <Switch checked={lighting[selectInfo.name] ? lighting[selectInfo.name].checked : false} onChange={this.changeLighting} />
                     </Space>
                   </Descriptions.Item>
-                  {!(/^0\./u).test(selectInfo.version as string) && <Descriptions.Item label="iframe模式">{selectInfo.iframe as string || 'false'}</Descriptions.Item>}
-                  <Descriptions.Item label="MicroApp版本">{selectInfo.version}</Descriptions.Item>
+                  { !(/^0\./u).test(selectInfo.version as string) && <Descriptions.Item label="iframe模式">{ selectInfo.iframe as string || 'false' }</Descriptions.Item> }
+                  <Descriptions.Item label="MicroApp版本">{ selectInfo.version }</Descriptions.Item>
                 </Descriptions>
               </Card>
               <Card size="small">
@@ -960,7 +1079,7 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
                 />
               </Card>
             </Col>
-          )}
+          ) }
         </Row>
       </div>
     );
