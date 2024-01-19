@@ -15,7 +15,7 @@
     "build:production": "node webpack/runner.js build production",
     "build:report": "node webpack/runner.js build production --report",
     "prettier": "prettier --write '**/*.{js,jsx,ts,tsx,json,css,less,scss,sass,md}'",
-    "lint": "eslint src/",
+    "lint": "eslint src/ --fix",
     "install-deps": "npm install",
     "prepare": "husky install"
   },

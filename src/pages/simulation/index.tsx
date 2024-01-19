@@ -1,10 +1,12 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable no-console */
+/* eslint-disable import/extensions */
 /** @jsxRuntime classic */
 /** @jsx jsxCustomEvent */
 import {
   DeleteOutlined,
   RedoOutlined,
 } from '@ant-design/icons';
-import microApp from '@micro-zoe/micro-app';
 import jsxCustomEvent from '@micro-zoe/micro-app/polyfill/jsx-custom-event';
 import {
   Alert,
@@ -26,11 +28,15 @@ import React from 'react';
 
 import { decodeJSON, encodeJSON } from '@/utils/json';
 
+import microApp1 from './js/microApp1.js';
+import microApp08, { unmountAllApps } from './js/microApp08.js';
+
 import styles from './index.module.less';
 
 const { Header, Content } = Layout;
 const { Title, Text } = Typography;
 const { Option } = Select;
+let microApp = microApp1;
 
 // Fake all web requests' referer.
 const onBeforeSendHeaders = window.chrome?.webRequest?.onBeforeSendHeaders;
@@ -49,38 +55,11 @@ if (onBeforeSendHeaders) {
   }, { urls: ['<all_urls>'] }, ['requestHeaders', 'blocking']);
 }
 
-microApp.start({
-  fetch(url, options, appName) {
-    if (url.slice(0, 2) === '//') {
-      url = ((window as unknown as { __MICRO_APP_EXTENSION_URL_PROTOCOL__: string }).__MICRO_APP_EXTENSION_URL_PROTOCOL__ ?? 'http:') + url;
-    }
-    return window.fetch(url, options)
-      .then(res => res.text());
-  },
-  plugins: {
-    // 全局插件，作用于所有子应用的js文件
-    global: [{
-      // 必填，js处理函数，必须返回code值
-      loader: (code: string, url: string) => `${[
-        'if (!window.__MICRO_APP_EXTENSION_FETCH__) {',
-        '  window.__MICRO_APP_EXTENSION_FETCH__ = window.fetch;',
-        '  window.fetch = function(url, options) {',
-        '    if (url.substring(0, 2) === \'//\') {',
-        '      url = window.location.protocol + url;',
-        '    }',
-        '    return window.__MICRO_APP_EXTENSION_FETCH__(url, options);',
-        '  };',
-        '}',
-      ].join('')
-      }${code}`,
-    }],
-  },
-});
-
 interface ControlData {
   url: string;
   prefix: string;
   data: { key: string; value: string; valueType: string }[];
+  ver?: string;
 }
 
 interface KeyValueData {
@@ -103,6 +82,7 @@ interface SimulationPageState {
   dataSource: KeyValueData[];
   jsonInputError: boolean;
   microAppUrl: string;
+  ver: string;
 }
 
 class SimulationPage extends React.PureComponent<SimulationPageProps, SimulationPageState> {
@@ -122,13 +102,80 @@ class SimulationPage extends React.PureComponent<SimulationPageProps, Simulation
     }],
     jsonInputError: false, // 手动输入的json格式错误
     microAppUrl: '',
+    ver: '1.0', // microApp版本号
   };
+
+  private initMicroApp() {
+    console.log('初始化', microApp);
+    const {
+      prefix,
+      microAppUrl,
+      dataSource,
+      ver,
+    } = this.state;
+    microApp = ver.startsWith('1') ? microApp1 : microApp08;
+    microApp.start({
+      fetch(url, options, appName) {
+        if (url.slice(0, 2) === '//') {
+          url = ((window as unknown as { __MICRO_APP_EXTENSION_URL_PROTOCOL__: string }).__MICRO_APP_EXTENSION_URL_PROTOCOL__ ?? 'http:') + url;
+        }
+        return window.fetch(url, options)
+          .then(res => res.text());
+      },
+      plugins: {
+        // 全局插件，作用于所有子应用的js文件
+        global: [{
+          // 必填，js处理函数，必须返回code值
+          loader: (code: string, url: string) => `${[
+            'if (!window.__MICRO_APP_EXTENSION_FETCH__) {',
+            '  window.__MICRO_APP_EXTENSION_FETCH__ = window.fetch;',
+            '  window.fetch = function(url, options) {',
+            '    if (url.substring(0, 2) === \'//\') {',
+            '      url = window.location.protocol + url;',
+            '    }',
+            '    return window.__MICRO_APP_EXTENSION_FETCH__(url, options);',
+            '  };',
+            '}',
+          ].join('')
+          }${code}`,
+        }],
+      },
+    });
+    if (ver.startsWith('1')) {
+      console.log('渲染microApp', microApp);
+      const data = {};
+      for (const el of dataSource) {
+        if (el.checked && el.key !== '' && el.value !== '') {
+          switch (el.valueType) {
+            case 'string':
+              data[el.key] = String(el.value);
+              break;
+            case 'number':
+              data[el.key] = Number.parseFloat(el.value);
+              break;
+            case 'boolean':
+              data[el.key] = Boolean(el.value);
+              break;
+            default:
+              data[el.key] = el.value;
+          }
+        }
+      }
+      microApp.renderApp({
+        url: prefix + microAppUrl,
+        name: 'micro-app-demo',
+        data,
+        container: document.querySelector('#MicroApp'),
+      });
+    }
+  }
 
   private applyControl() {
     const {
       url,
       prefix,
       dataSource,
+      ver,
     } = this.state;
     window.location.search = encodeURIComponent(encodeJSON({
       url,
@@ -138,6 +185,7 @@ class SimulationPage extends React.PureComponent<SimulationPageProps, Simulation
         value: el.value,
         valueType: el.valueType,
       }))),
+      ver,
     }));
   }
 
@@ -173,7 +221,6 @@ class SimulationPage extends React.PureComponent<SimulationPageProps, Simulation
   private updateControl(str?: string) {
     const { timeStr } = this.state;
     const q = decodeJSON<ControlData>(decodeURIComponent(window.location.search.slice(1)));
-
     if (q || q === 'undefined') {
       const url = q.url;
       const dataSource = [];
@@ -202,6 +249,9 @@ class SimulationPage extends React.PureComponent<SimulationPageProps, Simulation
         dataSource,
         timeStr: str === 'init' ? timeStr : Date.now(),
         microAppUrl: url,
+        ver: q.ver || this.state.ver,
+      }, () => {
+        this.initMicroApp();
       });
     }
     if (q?.url && q?.url.indexOf('#')) {
@@ -331,8 +381,37 @@ class SimulationPage extends React.PureComponent<SimulationPageProps, Simulation
     this.updateControl();
   };
 
+  private changeMicroAppVer = (e: string) => {
+    const oldVer = this.state.ver;
+    this.setState({
+      ver: e,
+    }, () => {
+      if (oldVer.startsWith('0')) {
+        unmountAllApps({
+          destroy: true,
+          clearAliveState: true,
+        }).then(() => {
+          this.initMicroApp();
+          return null;
+        }).catch((error: any) => {
+          console.error('卸载失败', error);
+        });
+      } else {
+        microApp.unmountAllApps({
+          destroy: true,
+          clearAliveState: true,
+        }).then(() => {
+          this.initMicroApp();
+          return null;
+        }).catch((error: any) => {
+          console.error('卸载失败', error);
+        });
+      }
+    });
+  };
+
   public render() {
-    const { timeStr, url, prefix, showKVType, dataSource, jsonInputError, microAppUrl } = this.state;
+    const { timeStr, url, prefix, showKVType, dataSource, jsonInputError, microAppUrl, ver } = this.state;
     const baceUrl = url ? url.split('#')[0] : '';
     const data = {};
     for (const el of dataSource) {
@@ -364,7 +443,7 @@ class SimulationPage extends React.PureComponent<SimulationPageProps, Simulation
             type="warning"
             message={(
               <div>
-                <div>目前插件版本只能模拟 micro-app 版本为 0.x 且子应用为 hash 路由的场景；</div>
+                <div>目前插件只能模拟子应用为 hash 路由的场景；</div>
                 <div>目前对于某些页面中http/https协议是简写//形式的链接由于插件本身限制无法实现跳转。</div>
               </div>
             )}
@@ -376,6 +455,12 @@ class SimulationPage extends React.PureComponent<SimulationPageProps, Simulation
               labelCol={{ span: 6 }}
               wrapperCol={{ span: 14 }}
             >
+              <Form.Item label="microApp版本" required>
+                <Select value={ver} onChange={this.changeMicroAppVer}>
+                  <Select.Option value="0.8">0.8</Select.Option>
+                  <Select.Option value="1.0">1.0</Select.Option>
+                </Select>
+              </Form.Item>
               <Form.Item label="子页面URL" required>
                 <Input.Search
                   addonBefore={(
@@ -487,11 +572,11 @@ class SimulationPage extends React.PureComponent<SimulationPageProps, Simulation
                   ) }
               </Form.Item>
               { JSON.stringify(data) !== '{}' && (
-              <Form.Item
-                label="最终传参"
-              >
-                <Text copyable>{ JSON.stringify(data) }</Text>
-              </Form.Item>
+                <Form.Item
+                  label="最终传参"
+                >
+                  <Text copyable>{ JSON.stringify(data) }</Text>
+                </Form.Item>
               ) }
             </Form>
           </Card>
@@ -500,15 +585,17 @@ class SimulationPage extends React.PureComponent<SimulationPageProps, Simulation
             <Divider type="vertical" />
             <Button type="link" size="small" onClick={this.refresh} icon={<RedoOutlined rev={null} />}>刷新</Button>
           </Divider>
-          { microAppUrl && (
-          <micro-app
-            className={styles.demo}
-            url={prefix + microAppUrl}
-            name="micro-app-demo"
-            data={data}
-            key={timeStr}
-          />
-          ) }
+          { ver.startsWith('1')
+            ? <div id="MicroApp" />
+            : (
+              <micro-app
+                className={styles.demo}
+                url={prefix + microAppUrl}
+                name="micro-app-demo"
+                data={data}
+                key={timeStr}
+              />
+            ) }
         </Content>
       </Space>
     );

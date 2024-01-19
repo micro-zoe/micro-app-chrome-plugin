@@ -1,8 +1,11 @@
+/* eslint-disable etc/no-commented-out-code */
 export const HEADER_TAB_LIST = [
   { name: 'ENV_VALUE_VIEWER', label: 'Environment' },
   { name: 'COMMUNICATE', label: 'Communicate' },
-  { name: 'VIEW_APP', label: 'View' },
-  { name: 'ROUTE_MATCH', label: 'Route' },
+  /*
+   * { name: 'VIEW_APP', label: 'View' },
+   * { name: 'ROUTE_MATCH', label: 'Route' },
+   */
 ];
 
 export const MICRO_APP_ENV_INFO = {
@@ -45,5 +48,9 @@ export const MICRO_APP_ENV_INFO = {
   __MICRO_APP_BASE_APPLICATION__: {
     describe: '是否是主应用',
     url: 'https://micro-zoe.github.io/micro-app/docs.html#/zh-cn/env?id=__micro_app_base_application__',
+  },
+  __MICRO_APP_STATE__: {
+    describe: '基座中获取子应用的状态',
+    url: 'https://micro-zoe.github.io/micro-app/docs.html#/zh-cn/changelog?id=_100-rc3',
   },
 };

@@ -93,7 +93,7 @@ module.exports = {
       version: 'detect',
     },
   },
-  noInlineConfig: true,
+  noInlineConfig: false,
   rules: {
     'linebreak-style': [0, 'error', 'windows']
   },
