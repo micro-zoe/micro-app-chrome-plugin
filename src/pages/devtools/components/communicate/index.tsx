@@ -781,7 +781,7 @@ class Communicate extends React.PureComponent<CommunicateProps, CommunicateState
       label: '模拟父应用向此子应用发送数据',
       children: this.sendDataDOM(),
     }];
-    if (canDispatchData.length > 0 && (selectInfo as FinalTreeData) && selectInfo.name && canDispatchData.includes(selectInfo.name)) {
+    if ((canDispatchData as string[]).length > 0 && (selectInfo as FinalTreeData) && (selectInfo as FinalTreeData).name && (canDispatchData as string[]).includes((selectInfo as FinalTreeData).name)) {
       tabItems.push({
         key: 'sendDataFromSubToMain',
         label: '模拟此子应用向父应用发送数据',
@@ -799,9 +799,9 @@ class Communicate extends React.PureComponent<CommunicateProps, CommunicateState
         activeKey={currentTab}
         onChange={(activityTab) => {
           if (activityTab === 'openSimulation') {
-            const url = (selectInfo.url as string).replace(/^(https?:)?\/\//u, '');
+            const url = (selectInfo?.url as string).replace(/^(https?:)?\/\//u, '');
             let prefix = '';
-            prefix = !(/^https?:\/\//u).test(selectInfo.url as string) ? 'http:' : new URL(selectInfo.url as string).protocol;
+            prefix = !(/^https?:\/\//u).test(selectInfo?.url as string) ? 'http:' : new URL(selectInfo?.url as string).protocol;
             const params = {
               url,
               prefix: `${prefix}//`,
