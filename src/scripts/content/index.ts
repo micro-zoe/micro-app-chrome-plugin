@@ -9,12 +9,12 @@ printLine("Using the 'printLine' function from the Print Module");
 
 function filterMicroApps() {
   const microApps = document.querySelectorAll('*');
-  const filteredMicroApps = [];
+  const filteredMicroApps: Element[] = [];
   for (const microApp of microApps) {
     const micro = microApp.tagName.toLowerCase();
     if (micro.startsWith('micro-app')
-    && micro !== 'micro-app-head'
-    && micro !== 'micro-app-body') {
+      && micro !== 'micro-app-head'
+      && micro !== 'micro-app-body') {
       filteredMicroApps.push(microApp);
     }
   }
@@ -76,7 +76,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   });
   if (request.action === 'devtoolsMicroApp') {
     const microAppDevs = document.querySelectorAll('[name][url]');
-    const result = [];
+    const result: string[] = [];
     microAppDevs.forEach(obj => result.push(obj.attributes[obj.attributes.length].value));
     sendResponse(microApps[0].baseURI);
   }

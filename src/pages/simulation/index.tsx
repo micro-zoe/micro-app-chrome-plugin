@@ -36,7 +36,7 @@ import styles from './index.module.less';
 const { Header, Content } = Layout;
 const { Title, Text } = Typography;
 const { Option } = Select;
-let microApp = microApp1;
+let microApp: any = microApp1;
 
 // Fake all web requests' referer.
 const onBeforeSendHeaders = window.chrome?.webRequest?.onBeforeSendHeaders;
@@ -223,7 +223,7 @@ class SimulationPage extends React.PureComponent<SimulationPageProps, Simulation
     const q = decodeJSON<ControlData>(decodeURIComponent(window.location.search.slice(1)));
     if (q || q === 'undefined') {
       const url = q.url;
-      const dataSource = [];
+      const dataSource: KeyValueData[] = [];
       if (typeof q.data === 'string' && q.data) {
         for (const oneData of JSON.parse(q.data)) {
           dataSource.push({

@@ -662,21 +662,21 @@ class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateS
                   const columns = [{
                     title: '序号',
                     dataIndex: 'index',
-                    render: (text: unknown, record: unknown, index: number) => index + 1,
+                    render: (text: unknown, record: unknown, index: number): JSX.Element => <div>{ index + 1 }</div>,
                   }, {
                     title: '内容',
                     dataIndex: 'content',
-                    render: (text: unknown) => <Text copyable>{ JSON.stringify(this.formatData(text as KeyValueData[])) }</Text>,
+                    render: (text: unknown): JSX.Element => <Text copyable>{ JSON.stringify(this.formatData(text as KeyValueData[])) }</Text>,
                   }, {
                     title: '时间',
                     dataIndex: 'time',
-                    render: (text: unknown) => moment(text as number).format('YYYY-MM-DD HH:mm:ss'),
+                    render: (text: unknown): string => moment(text as number).format('YYYY-MM-DD HH:mm:ss'),
                   }];
                   if (showKVType) {
                     columns.push({
                       title: '操作',
                       dataIndex: 'edit',
-                      render: (text: unknown, record: unknown) => <Button type="link" size="small" onClick={() => this.writeHistoryData(record as HistoryData)}>填入</Button>,
+                      render: (text: unknown, record: unknown, index: number): JSX.Element => <Button type="link" size="small" onClick={() => this.writeHistoryData(record as HistoryData)}>填入</Button>,
                     });
                   }
                   return (

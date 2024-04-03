@@ -3,28 +3,20 @@
  */
 
 import React from 'react';
-import {
-    Table
-} from 'antd'
 
 interface DevToolsPageProps { }
 
 interface DevToolsPageState {
 }
 
-
 class Console extends React.PureComponent<DevToolsPageProps, DevToolsPageState> {
-    public state = {
-    };
+  public state = {};
 
-    public componentDidMount(): void {
-    }
-
-    public render() {
-        return (<div>
-            
-        </div>);
-    }
+  public render() {
+    return (
+      <div />
+    );
+  }
 }
 
 export default Console;

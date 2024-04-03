@@ -1,23 +1,26 @@
+/* eslint-disable no-console */
 /**
  * 全局环境变量
  */
 
-import React from 'react';
+import { ExclamationCircleOutlined } from '@ant-design/icons';
 import {
-  Table,
+  Button,
   Space,
+  Table,
   Typography,
-  Button
-} from 'antd'
-import { ExclamationCircleOutlined } from '@ant-design/icons'
+} from 'antd';
+import React from 'react';
 
 interface DevToolsPageProps { }
 
 interface DevToolsPageState {
-  environment: {
-    key: string;
-    value: unknown
-  }[]
+  environment: OneEnvironment[];
+}
+
+type OneEnvironment = {
+  key: string;
+  value: unknown;
 }
 
 const MICRO_APP_ENV_INFO = {
@@ -67,10 +70,9 @@ const MICRO_APP_ENV_INFO = {
   },
 };
 
-
 class Environment extends React.PureComponent<DevToolsPageProps, DevToolsPageState> {
   public state = {
-    environment: []
+    environment: [],
   };
 
   public componentDidMount(): void {
@@ -93,61 +95,63 @@ class Environment extends React.PureComponent<DevToolsPageProps, DevToolsPageSta
       (res: string) => {
         console.log('getEnvironment', res);
         if (res && res !== 'undefined' && res !== 'null') {
-          let environment = [];
-          for (let [key, value] of Object.entries(JSON.parse(res))) {
+          const environment: OneEnvironment[] = [];
+          for (const [key, value] of Object.entries(JSON.parse(res))) {
             environment.push({
               key,
-              value
-            })
+              value,
+            });
           }
           this.setState({
-            environment
-          })
+            environment,
+          });
         }
       },
     );
-  }
+  };
+
   private openUrl = (record) => {
     const url = record.url || 'https://micro-zoe.github.io/micro-app/docs.html#/zh-cn/env';
     window.open(url, '_blank');
-  }
+  };
 
   public render() {
     const {
-      environment
+      environment,
     } = this.state;
-    return (<div>
-      <Table
-        size='small'
-        columns={[{
-          title: '变量名称',
-          dataIndex: 'key'
-        }, {
-          title: '变量值',
-          dataIndex: 'value',
-          render: text => {
-            return JSON.stringify(text).replace(/"/g, '');
-          }
-        }, {
-          title: '含义',
-          dataIndex: 'description',
-          render: (text, record) => {
-            if (MICRO_APP_ENV_INFO[record.key]) {
-              const info = MICRO_APP_ENV_INFO[record.key];
-              return (<Space>
-                <Typography.Text>{info.describe}</Typography.Text>
-                <Button type='link' size='small' icon={<ExclamationCircleOutlined rev={null} style={{ color: '#aaa' }} />} onClick={() => this.openUrl(info)}></Button>
-              </Space>)
-            } else {
+    return (
+      <div>
+        <Table
+          size="small"
+          columns={[{
+            title: '变量名称',
+            dataIndex: 'key',
+          }, {
+            title: '变量值',
+            dataIndex: 'value',
+            render: text => JSON.stringify(text).replace(/"/ug, ''),
+          }, {
+            title: '含义',
+            dataIndex: 'description',
+            render: (text, record: OneEnvironment) => {
+              if (MICRO_APP_ENV_INFO[record.key]) {
+                const info = MICRO_APP_ENV_INFO[record.key];
+                return (
+                  <Space>
+                    <Typography.Text>{ info.describe }</Typography.Text>
+                    <Button type="link" size="small" icon={<ExclamationCircleOutlined rev={null} style={{ color: '#aaa' }} />} onClick={() => this.openUrl(info)} />
+                  </Space>
+                );
+              }
               return '-';
-            }
-          }
-        }]}
-        dataSource={environment}
-        rowKey='key'
-        pagination={false}
-      />
-    </div>);
+            },
+          }]}
+          dataSource={environment}
+          rowKey="key"
+          pagination={false}
+        />
+      </div>
+    );
   }
 }
 

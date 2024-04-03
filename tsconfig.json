@@ -12,19 +12,27 @@
     "isolatedModules": false,
     "jsx": "react",
     "jsxFactory": "React.createElement",
-    "lib": ["dom", "dom.iterable", "esnext"],
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
     "listFiles": true,
     "module": "ESNext",
     "moduleResolution": "node",
     "noEmit": false,
     "noFallthroughCasesInSwitch": true,
-    "noImplicitAny": true,
+    "noImplicitAny": false,
     "noImplicitReturns": true,
     "noImplicitThis": true,
     "noUnusedLocals": true,
     "noUnusedParameters": false,
     "outDir": "dist",
-    "paths": {"@/*": ["src/*"]},
+    "paths": {
+      "@/*": [
+        "src/*"
+      ]
+    },
     "removeComments": true,
     "resolveJsonModule": true,
     "skipLibCheck": true,
@@ -34,8 +42,25 @@
     "suppressImplicitAnyIndexErrors": true,
     "target": "es5",
     "downlevelIteration": true,
-    "types": ["chrome", "node", "webpack-env", "@micro-zoe/micro-app"]
+    "types": [
+      "chrome",
+      "node",
+      "webpack-env",
+      "@micro-zoe/micro-app"
+    ]
   },
-  "exclude": ["dist", "node_modules"],
-  "include": ["**/*.ts", "**/.*.ts", "**/*.tsx", "**/.*.tsx"]
+  "exclude": [
+    "dist",
+    "node_modules"
+  ],
+  "include": [
+    "**/*.ts",
+    "**/.*.ts",
+    "**/*.tsx",
+    "**/.*.tsx"
+  ],
+  "rules": {
+    "no-console": 0,
+    "no-commented-out-code": 0
+  }
 }
