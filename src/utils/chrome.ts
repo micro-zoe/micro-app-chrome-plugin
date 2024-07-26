@@ -36,7 +36,7 @@ export interface FinalTreeData {
 }
 
 const objectToArray = (obj: OneTreeData, mapping: object): FinalTreeData[] => {
-  const result = [];
+  const result: FinalTreeData[] = [];
   for (const key of Object.keys(obj)) {
     const value = obj[key];
     const para: {

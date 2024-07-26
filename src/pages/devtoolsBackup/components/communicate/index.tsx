@@ -1,14 +1,15 @@
-/* eslint-disable etc/no-commented-out-code */
-/**
- * 数据通信
- */
-
-import { CopyOutlined, DeleteOutlined, LinkOutlined } from '@ant-design/icons';
+/* eslint-disable valid-jsdoc */
+/* eslint-disable no-console */
+import { CopyOutlined, DeleteOutlined, LinkOutlined, RedoOutlined } from '@ant-design/icons';
 import {
   Button,
+  Card,
   Checkbox,
   Col,
+  ColorPicker,
+  Descriptions,
   Dropdown,
+  Empty,
   Form,
   Input,
   message,
@@ -19,6 +20,7 @@ import {
   Switch,
   Table,
   Tabs,
+  Tree,
   Typography,
 } from 'antd';
 import moment from 'moment';
@@ -28,22 +30,17 @@ import {
 } from 'react-copy-to-clipboard';
 import ReactJson from 'react-json-view';
 
-import { FinalTreeData } from '@/utils/chrome';
+import { FinalTreeData, getMicroAppLevel } from '@/utils/chrome';
 
-const { Text } = Typography;
+const { Text, Link } = Typography;
 const { Option } = Select;
 
-interface CommunicateProps {
-  /**
-   * 树形结构选择的微应用信息
-   */
-  selectInfo: FinalTreeData | null;
-}
+interface CommunicateProps { }
 interface KeyValueData {
   id: number;
   key: string;
   value: string;
-  valueType: string;
+  valueType: 'string' | 'number' | 'boolean';
   checked: boolean;
 }
 
@@ -69,14 +66,38 @@ interface CommunicateState {
    */
   jsonInputError: boolean;
   /**
+   * 微前端树形层级结构
+   */
+  treeData: (FinalTreeData & {
+    key: string;
+    title: string;
+  })[];
+  /**
    * 能够子应用发送给父应用的应用
    * Tips:并不是所有子应用都可发数据给父应用，在iframe模式下均可以，在with模式下仅最后加载的应用可以
    */
-  canDispatchData: FinalTreeData[];
+  canDispatchData: unknown[];
   /**
    * 发送数据的应用名称
    */
   selectDispatchAppName: string;
+  /**
+   * 树形结构选择的微应用信息
+   */
+  selectInfo: FinalTreeData | null;
+  /**
+   * 高亮信息数据缓存
+   */
+  lighting: {
+    [name: string]: {
+      checked: boolean;
+      color: string;
+    };
+  };
+  /**
+   * 是否首次初始化
+   */
+  init: boolean;
   /**
    * 历史记录数据
    */
@@ -100,8 +121,8 @@ type HistoryData = {
   type: string;
 }
 
-class Communicate extends React.PureComponent<CommunicateProps, CommunicateState> {
-  public state = {
+class CommunicatePage extends React.PureComponent<CommunicateProps, CommunicateState> {
+  public state: CommunicateState = {
     info: {},
     currentTab: 'getMainToSubData', // 'getMainToSubData',
     showKVType: true,
@@ -113,15 +134,84 @@ class Communicate extends React.PureComponent<CommunicateProps, CommunicateState
       valueType: 'string',
     }],
     jsonInputError: false,
+    treeData: [],
+    selectInfo: null,
     canDispatchData: [],
     selectDispatchAppName: '',
+    lighting: {},
+    init: true,
     history: [],
   };
 
   public componentDidMount() {
-    this.getCanDispatchData();
-    this.getData();
+    this.getTree();
   }
+
+  /**
+   * 获取页面微应用结构
+   */
+  private getTree = () => {
+    const {
+      selectInfo,
+    } = this.state;
+    getMicroAppLevel({
+      key: 'name',
+      title: 'name',
+      url: 'url',
+      iframe: 'iframe',
+      version: 'version',
+      href: 'href',
+      fullPath: 'fullPath',
+      baseroute: 'baseroute',
+      tagName: 'tagName',
+    }).then((treeData) => {
+      console.log('microAppLevel返回', treeData);
+      this.setState({
+        treeData: treeData as (FinalTreeData & {
+          key: string;
+          title: string;
+        })[],
+        info: {},
+        init: false,
+      }, () => {
+        this.getCanDispatchData();
+      });
+      const allAppInfo = this.getAllAppInfo(treeData);
+      if (selectInfo) {
+        let inAppInfo = false;
+        for (const el of allAppInfo) {
+          if (el.name === selectInfo.name) {
+            inAppInfo = true;
+            this.setState({
+              selectInfo: el.info,
+            }, () => {
+              this.loadHistory();
+            });
+            break;
+          }
+        }
+        if (!inAppInfo && allAppInfo.length > 0) {
+          this.setState({
+            selectInfo: allAppInfo[0].info,
+          }, () => {
+            this.loadHistory();
+          });
+        }
+      } else if (allAppInfo.length > 0) {
+        this.setState({
+          selectInfo: allAppInfo[0].info,
+        }, () => {
+          this.loadHistory();
+        });
+      }
+      if (['getMainToSubData', 'getSubToMainData'].includes(this.state.currentTab)) {
+        this.getData();
+      }
+      return null;
+    }).catch((error: unknown) => {
+      console.error('err', error);
+    });
+  };
 
   /**
    * 从页面获取数据
@@ -129,10 +219,8 @@ class Communicate extends React.PureComponent<CommunicateProps, CommunicateState
   private getData = () => {
     const {
       currentTab,
-    } = this.state;
-    const {
       selectInfo,
-    } = this.props;
+    } = this.state;
     let evalLabel = '';
     let domName = selectInfo?.tagName || 'micro-app';
     const appName = selectInfo?.name || '';
@@ -141,14 +229,14 @@ class Communicate extends React.PureComponent<CommunicateProps, CommunicateState
     }
     evalLabel = currentTab === 'getSubToMainData'
       ? `JSON.stringify(function () {
-            if (!document.querySelector("${domName}").getSendData){
-              document.querySelector("${domName}").addEventListener('datachange', function (e) {
-                  document.querySelector("${domName}").getSendData = e.detail.data;
-                  document.querySelector("${domName}").onDataChange;
-              })
-            }
-            return document.querySelector("${domName}").getSendData;
-        }())`
+        if (!document.querySelector("${domName}").getSendData){
+          document.querySelector("${domName}").addEventListener('datachange', function (e) {
+              document.querySelector("${domName}").getSendData = e.detail.data;
+              document.querySelector("${domName}").onDataChange;
+          })
+        }
+        return document.querySelector("${domName}").getSendData;
+    }())`
       : `JSON.stringify(document.querySelector("${domName}").data)`;
     chrome.devtools.inspectedWindow.eval(
       evalLabel,
@@ -175,11 +263,9 @@ class Communicate extends React.PureComponent<CommunicateProps, CommunicateState
    */
   private saveHistory = (content: unknown) => {
     const {
+      selectInfo,
       currentTab,
     } = this.state;
-    const {
-      selectInfo,
-    } = this.props;
     const oldHistory: string | null = localStorage.getItem(`${currentTab}_${selectInfo?.name}`);
     let result: HistoryData[] = [];
     if (!oldHistory) {
@@ -211,10 +297,8 @@ class Communicate extends React.PureComponent<CommunicateProps, CommunicateState
   private loadHistory = () => {
     const {
       currentTab,
-    } = this.state;
-    const {
       selectInfo,
-    } = this.props;
+    } = this.state;
     const history = localStorage.getItem(`${currentTab}_${selectInfo?.name}`);
     this.setState({
       history: history ? JSON.parse(history) : [],
@@ -223,11 +307,9 @@ class Communicate extends React.PureComponent<CommunicateProps, CommunicateState
 
   private cleanHistory = () => {
     const {
+      selectInfo,
       currentTab,
     } = this.state;
-    const {
-      selectInfo,
-    } = this.props;
     localStorage.removeItem(`${currentTab}_${selectInfo?.name}`);
     this.setState({
       history: [],
@@ -236,9 +318,8 @@ class Communicate extends React.PureComponent<CommunicateProps, CommunicateState
 
   /**
    * 获取数据渲染
-   * @returns DOM
    */
-  private getDataDOM = (): JSX.Element => {
+  private getDataDOM = () => {
     const {
       info,
       history,
@@ -303,7 +384,6 @@ class Communicate extends React.PureComponent<CommunicateProps, CommunicateState
 
   /**
    * 生成随机ID，用于Table的key
-   * @returns 随机数
    */
   private randomId(): number {
     return Math.floor(Math.random() * 10000);
@@ -387,20 +467,20 @@ class Communicate extends React.PureComponent<CommunicateProps, CommunicateState
   private getCanDispatchData = () => {
     const {
       selectInfo,
-    } = this.props;
+    } = this.state;
     const evalLabel = `JSON.stringify(function (){
-          const rawWindow = window.__MICRO_APP_PROXY_WINDOW__?.rawWindow || [];
-          if (rawWindow.length == 0){
-              result = [window.__MICRO_APP_PROXY_WINDOW__?.microApp?.appName];
-          } else {
-              let result = [];
-              for (var i = 0; i < rawWindow.length; i++){
-                  const oneWindow = rawWindow[i];
-                  result.push(oneWindow.microApp.appName);
-              }
+      const rawWindow = window.__MICRO_APP_PROXY_WINDOW__?.rawWindow || [];
+      if (rawWindow.length == 0){
+          result = [window.__MICRO_APP_PROXY_WINDOW__?.microApp?.appName];
+      } else {
+          let result = [];
+          for (var i = 0; i < rawWindow.length; i++){
+              const oneWindow = rawWindow[i];
+              result.push(oneWindow.microApp.appName);
           }
-          return result;
-      }())`;
+      }
+      return result;
+  }())`;
     chrome.devtools.inspectedWindow.eval(
       evalLabel,
       (res: string) => {
@@ -432,9 +512,8 @@ class Communicate extends React.PureComponent<CommunicateProps, CommunicateState
 
   /**
    * 发送数据渲染
-   * @returns DOM
    */
-  private sendDataDOM = (): JSX.Element => {
+  private sendDataDOM = () => {
     const {
       showKVType,
       jsonInputError,
@@ -583,21 +662,21 @@ class Communicate extends React.PureComponent<CommunicateProps, CommunicateState
                   const columns = [{
                     title: '序号',
                     dataIndex: 'index',
-                    render: (text: unknown, record: unknown, index: number) => <div>{ index + 1 }</div>,
+                    render: (text: unknown, record: unknown, index: number): JSX.Element => <div>{ index + 1 }</div>,
                   }, {
                     title: '内容',
                     dataIndex: 'content',
-                    render: (text: unknown) => <Text copyable>{ JSON.stringify(this.formatData(text as KeyValueData[])) }</Text>,
+                    render: (text: unknown): JSX.Element => <Text copyable>{ JSON.stringify(this.formatData(text as KeyValueData[])) }</Text>,
                   }, {
                     title: '时间',
                     dataIndex: 'time',
-                    render: (text: unknown) => moment(text as number).format('YYYY-MM-DD HH:mm:ss'),
+                    render: (text: unknown): string => moment(text as number).format('YYYY-MM-DD HH:mm:ss'),
                   }];
                   if (showKVType) {
                     columns.push({
                       title: '操作',
                       dataIndex: 'edit',
-                      render: (text: unknown, record: unknown, index: number) => <Button type="link" size="small" onClick={() => this.writeHistoryData(record as HistoryData)}>填入</Button>,
+                      render: (text: unknown, record: unknown, index: number): JSX.Element => <Button type="link" size="small" onClick={() => this.writeHistoryData(record as HistoryData)}>填入</Button>,
                     });
                   }
                   return (
@@ -680,12 +759,10 @@ class Communicate extends React.PureComponent<CommunicateProps, CommunicateState
     const {
       currentTab,
       dataSource,
+      selectInfo,
       canDispatchData,
       selectDispatchAppName,
     } = this.state;
-    const {
-      selectInfo,
-    } = this.props;
     const data = this.formatData(dataSource);
     const appName = selectInfo?.name || '';
     let evalLabel = '';
@@ -693,15 +770,15 @@ class Communicate extends React.PureComponent<CommunicateProps, CommunicateState
       evalLabel = canDispatchData.length <= 1
         ? `window.__MICRO_APP_PROXY_WINDOW__.microApp.dispatch(${JSON.stringify(data)})`
         : `JSON.stringify(function (){
-                const rawWindow = window.__MICRO_APP_PROXY_WINDOW__?.rawWindow || [];
-                for (var i = 0; i < rawWindow.length; i++){
-                    const oneWindow = rawWindow[i];
-                    if (oneWindow.microApp.appName === "${selectDispatchAppName}"){
-                        oneWindow.microApp.dispatch(${JSON.stringify(data)});
-                        break;
-                    }
+            const rawWindow = window.__MICRO_APP_PROXY_WINDOW__?.rawWindow || [];
+            for (var i = 0; i < rawWindow.length; i++){
+                const oneWindow = rawWindow[i];
+                if (oneWindow.microApp.appName === "${selectDispatchAppName}"){
+                    oneWindow.microApp.dispatch(${JSON.stringify(data)});
+                    break;
                 }
-            }())`;
+            }
+        }())`;
     } else {
       let domName = selectInfo?.tagName || 'micro-app';
       if (appName) {
@@ -739,12 +816,121 @@ class Communicate extends React.PureComponent<CommunicateProps, CommunicateState
   };
 
   /**
+   * 选择应用
+   * @param selectedKeys 已选择的key
+   * @param info 选择的数据
+   */
+  private selectTree = (selectedKeys: (string | number)[], info: { event: 'select'; selected: boolean; node: unknown; selectedNodes: unknown[]; nativeEvent: MouseEvent }) => {
+    const {
+      currentTab,
+    } = this.state;
+    if (selectedKeys.length > 0) {
+      this.setState({
+        selectInfo: info.node as FinalTreeData,
+      }, () => {
+        this.loadHistory();
+        if (['getMainToSubData', 'getSubToMainData'].includes(currentTab)) {
+          this.getData();
+        }
+      });
+    }
+  };
+
+  /**
+   * 修改高亮状态
+   * @param checked 是否高亮
+   */
+  private changeLighting = (checked: boolean) => {
+    const {
+      selectInfo,
+    } = this.state;
+    if (selectInfo) {
+      this.setState(prevState => ({
+        lighting: {
+          ...prevState.lighting,
+          [selectInfo.name]: {
+            ...prevState.lighting[selectInfo.name],
+            checked,
+          },
+        },
+      }), () => {
+        this.doLighting();
+      });
+    }
+  };
+
+  /**
+   * 修改高亮边框颜色
+   * @param color 颜色
+   * @param hex HEX颜色
+   */
+  private changeColor = (color: unknown, hex: string) => {
+    const {
+      selectInfo,
+    } = this.state;
+    if (selectInfo) {
+      this.setState(prevState => ({
+        lighting: {
+          ...prevState.lighting,
+          [selectInfo.name]: {
+            ...prevState.lighting[selectInfo.name],
+            color: hex,
+          },
+        },
+      }), () => {
+        this.doLighting();
+      });
+    }
+  };
+
+  /**
+   * 页面应用标记高亮
+   */
+  private doLighting = () => {
+    const {
+      lighting,
+      selectInfo,
+    } = this.state;
+    if (selectInfo) {
+      const color = lighting[selectInfo.name].color || '#E2231A';
+      const evalLabel = `JSON.stringify(function(){
+        if (!window.originalStyles){
+          window.originalStyles = new Map();
+          window.setLightingStyle = [];
+        }
+        var appDOM = document.getElementsByName('${selectInfo.name}')[0];
+        if (${lighting[selectInfo.name].checked}) {
+            const originalStyle = appDOM.getAttribute('style');
+            if (window.setLightingStyle.indexOf('${selectInfo.name}') == -1 && !window.originalStyles.get('${selectInfo.name}')){
+              window.setLightingStyle.push('${selectInfo.name}');
+              window.originalStyles.set('${selectInfo.name}', originalStyle);
+            }
+            appDOM.style.border = '2px dashed ${color}';
+            appDOM.style.display = 'block';
+            appDOM.style.transformOrigin = 'center';
+            appDOM.style.transform = 'rotate(360deg)';
+        } else {
+            const originalStyle = window.originalStyles.get('${selectInfo.name}');
+            if (originalStyle) {
+                appDOM.setAttribute('style', originalStyle);
+            } else {
+                appDOM.removeAttribute('style');
+            }
+        }
+    }())`;
+      chrome.devtools.inspectedWindow.eval(
+        evalLabel,
+      );
+    }
+  };
+
+  /**
    * 重新加载微应用
    */
   private reloadApp = () => {
     const {
       selectInfo,
-    } = this.props;
+    } = this.state;
     let domName = selectInfo?.tagName || 'micro-app';
     const appName = selectInfo?.name || '';
     if (appName) {
@@ -759,11 +945,25 @@ class Communicate extends React.PureComponent<CommunicateProps, CommunicateState
   public render() {
     const {
       currentTab,
-      canDispatchData,
-    } = this.state;
-    const {
+      treeData,
       selectInfo,
-    } = this.props;
+      canDispatchData,
+      lighting,
+      init,
+    } = this.state;
+    if (!init && treeData.length === 0) {
+      return (
+        <Card>
+          <Empty description={(
+            <Space direction="vertical">
+              <div>未发现MicroApp微应用</div>
+              <Button type="primary" onClick={this.getTree} size="small">重新读取</Button>
+            </Space>
+          )}
+          />
+        </Card>
+      );
+    }
     const tabItems: {
       key: string;
       label: string;
@@ -781,7 +981,7 @@ class Communicate extends React.PureComponent<CommunicateProps, CommunicateState
       label: '模拟父应用向此子应用发送数据',
       children: this.sendDataDOM(),
     }];
-    if ((canDispatchData as string[]).length > 0 && (selectInfo as FinalTreeData) && (selectInfo as FinalTreeData).name && (canDispatchData as string[]).includes((selectInfo as FinalTreeData).name)) {
+    if (canDispatchData.length > 0 && selectInfo && selectInfo.name && canDispatchData.includes(selectInfo.name)) {
       tabItems.push({
         key: 'sendDataFromSubToMain',
         label: '模拟此子应用向父应用发送数据',
@@ -792,54 +992,98 @@ class Communicate extends React.PureComponent<CommunicateProps, CommunicateState
       key: 'openSimulation',
       label: '此子应用开发环境模拟',
     });
+    let href: string = '';
+    if (selectInfo) {
+      href = selectInfo.url as string;
+      if (!(/^https?:\/\//u).test(href)) {
+        href = `http://${href}`;
+      }
+    }
     return (
-      <Tabs
-        size="small"
-        items={tabItems}
-        activeKey={currentTab}
-        onChange={(activityTab) => {
-          if (activityTab === 'openSimulation') {
-            const url = (selectInfo?.url as string).replace(/^(https?:)?\/\//u, '');
-            let prefix = '';
-            prefix = !(/^https?:\/\//u).test(selectInfo?.url as string) ? 'http:' : new URL(selectInfo?.url as string).protocol;
-            const params = {
-              url,
-              prefix: `${prefix}//`,
-              data: JSON.stringify([]),
-              ver: '1.0',
-            };
-            if (selectInfo && selectInfo.version && selectInfo.version.startsWith('0')) {
-              params.ver = '0.8';
-            }
-            chrome.tabs.create({
-              url: `simulation.html?${encodeURIComponent(JSON.stringify(params))}`,
-            });
-          } else {
-            this.setState({
-              info: {},
-              currentTab: activityTab,
-              dataSource: [{
-                id: this.randomId(),
-                checked: true,
-                key: '',
-                value: '',
-                valueType: 'string',
-              }],
-              history: [],
-            }, () => {
-              this.loadHistory();
-              if (activityTab === 'sendDataFromSubToMain') {
-                this.getCanDispatchData();
-              }
-              if (['getMainToSubData', 'getSubToMainData'].includes(activityTab)) {
-                this.getData();
-              }
-            });
-          }
-        }}
-      />
+      <div style={{ padding: 10 }}>
+        <Row gutter={10} style={{ display: 'flex', alignItems: 'stretch' }}>
+          <Col span={4} style={{ flex: 1 }}>
+            <Card style={{ height: '100%' }} size="small" title="选择子应用" extra={<Button type="link" icon={<RedoOutlined rev={null} />} onClick={this.getTree} />}>
+              <Tree
+                defaultExpandAll
+                autoExpandParent
+                treeData={treeData}
+                onSelect={this.selectTree}
+                selectedKeys={selectInfo ? [selectInfo.name] : []}
+              />
+            </Card>
+          </Col>
+          { selectInfo && (
+            <Col span={20}>
+              <Card style={{ marginBottom: 10 }} size="small" title="应用信息" extra={<Button type="link" icon={<RedoOutlined rev={null} />} onClick={this.reloadApp}>重新加载</Button>}>
+                <Descriptions size="small">
+                  <Descriptions.Item label="name">{ selectInfo.name }</Descriptions.Item>
+                  <Descriptions.Item label="url"><Link copyable href={href} target="_blank">{ selectInfo.url }</Link></Descriptions.Item>
+                  { selectInfo.baseroute && <Descriptions.Item label="baseroute">{ selectInfo.baseroute }</Descriptions.Item> }
+                  { selectInfo.fullPath && <Descriptions.Item label="子路由">{ selectInfo.fullPath }</Descriptions.Item> }
+                  <Descriptions.Item label="高亮范围">
+                    <Space>
+                      <ColorPicker value={lighting[selectInfo.name] ? lighting[selectInfo.name].color : '#E2231A'} size="small" onChange={this.changeColor} />
+                      <Switch checked={lighting[selectInfo.name] ? lighting[selectInfo.name].checked : false} onChange={this.changeLighting} />
+                    </Space>
+                  </Descriptions.Item>
+                  { !(/^0\./u).test(selectInfo.version as string) && <Descriptions.Item label="iframe模式">{ selectInfo.iframe as string || 'false' }</Descriptions.Item> }
+                  <Descriptions.Item label="MicroApp版本">{ selectInfo.version }</Descriptions.Item>
+                </Descriptions>
+              </Card>
+              <Card size="small">
+                <Tabs
+                  size="small"
+                  items={tabItems}
+                  activeKey={currentTab}
+                  onChange={(activityTab) => {
+                    if (activityTab === 'openSimulation') {
+                      const url = (selectInfo.url as string).replace(/^(https?:)?\/\//u, '');
+                      let prefix = '';
+                      prefix = !(/^https?:\/\//u).test(selectInfo.url as string) ? 'http:' : new URL(selectInfo.url as string).protocol;
+                      const params = {
+                        url,
+                        prefix: `${prefix}//`,
+                        data: JSON.stringify([]),
+                        ver: '1.0',
+                      };
+                      if (selectInfo.version && selectInfo.version.startsWith('0')) {
+                        params.ver = '0.8';
+                      }
+                      chrome.tabs.create({
+                        url: `simulation.html?${encodeURIComponent(JSON.stringify(params))}`,
+                      });
+                    } else {
+                      this.setState({
+                        info: {},
+                        currentTab: activityTab,
+                        dataSource: [{
+                          id: this.randomId(),
+                          checked: true,
+                          key: '',
+                          value: '',
+                          valueType: 'string',
+                        }],
+                        history: [],
+                      }, () => {
+                        this.loadHistory();
+                        if (activityTab === 'sendDataFromSubToMain') {
+                          this.getCanDispatchData();
+                        }
+                        if (['getMainToSubData', 'getSubToMainData'].includes(activityTab)) {
+                          this.getData();
+                        }
+                      });
+                    }
+                  }}
+                />
+              </Card>
+            </Col>
+          ) }
+        </Row>
+      </div>
     );
   }
 }
 
-export default Communicate;
+export default CommunicatePage;
