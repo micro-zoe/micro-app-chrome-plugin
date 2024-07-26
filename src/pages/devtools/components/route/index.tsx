@@ -40,6 +40,52 @@ class Route extends React.PureComponent<RouteProps, RouteState> {
     lighting: {},
   };
 
+  public componentDidMount(): void {
+    const {
+      selectInfo,
+    } = this.props;
+    if (selectInfo && selectInfo.lighting && selectInfo.lighting === '1') {
+      this.setState(prevState => ({
+        lighting: {
+          ...prevState.lighting,
+          [selectInfo.name]: {
+            checked: true,
+            color: selectInfo.lightingColor as string,
+          },
+        },
+      }));
+    }
+  }
+
+  public componentDidUpdate(prevProps: Readonly<RouteProps>): void {
+    if (prevProps.selectInfo?.name !== this.props.selectInfo?.name && this.props.selectInfo && !this.state.lighting[this.props.selectInfo.name]) {
+      const checked = !!(this.props.selectInfo.lighting && this.props.selectInfo.lighting === '1');
+      this.setState(prevState => ({
+        lighting: {
+          ...prevState.lighting,
+          [this.props.selectInfo?.name ?? 'defaultName']: {
+            checked,
+            color: this.props.selectInfo?.lightingColor as string,
+          },
+        },
+      }));
+    }
+    if (prevProps.selectInfo && !this.props.selectInfo) {
+      this.setState({
+        lighting: {},
+      });
+      const evalLabel = `JSON.stringify(function(){
+        if (window.originalStyles){
+          window.originalStyles = new Map();
+          window.setLightingStyle = [];
+        }
+      }())`;
+      chrome.devtools.inspectedWindow.eval(
+        evalLabel,
+      );
+    }
+  }
+
   /**
    * 修改高亮状态
    * @param checked 是否高亮
@@ -106,7 +152,7 @@ class Route extends React.PureComponent<RouteProps, RouteState> {
         }
         var appDOM = document.getElementsByName('${selectInfo.name}')[0];
         if (${lighting[selectInfo.name].checked}) {
-            const originalStyle = appDOM.getAttribute('style');
+            var originalStyle = appDOM.getAttribute('style');
             if (window.setLightingStyle.indexOf('${selectInfo.name}') == -1 && !window.originalStyles.get('${selectInfo.name}')){
               window.setLightingStyle.push('${selectInfo.name}');
               window.originalStyles.set('${selectInfo.name}', originalStyle);
@@ -115,13 +161,17 @@ class Route extends React.PureComponent<RouteProps, RouteState> {
             appDOM.style.display = 'block';
             appDOM.style.transformOrigin = 'center';
             appDOM.style.transform = 'rotate(360deg)';
+            appDOM.setAttribute('data-lighting', '1');
+            appDOM.setAttribute('data-lighting-color', '${color}');
         } else {
-            const originalStyle = window.originalStyles.get('${selectInfo.name}');
+            var originalStyle = window.originalStyles.get('${selectInfo.name}');
             if (originalStyle) {
                 appDOM.setAttribute('style', originalStyle);
             } else {
                 appDOM.removeAttribute('style');
             }
+            appDOM.removeAttribute('data-lighting');
+            appDOM.removeAttribute('data-lighting-color');
         }
     }())`;
       chrome.devtools.inspectedWindow.eval(
