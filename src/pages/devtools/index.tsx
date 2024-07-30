@@ -73,6 +73,8 @@ class DevToolsPage extends React.PureComponent<DevToolsPageProps, DevToolsPageSt
       fullPath: 'fullPath',
       baseroute: 'baseroute',
       tagName: 'tagName',
+      lightingColor: 'data-lighting-color',
+      lighting: 'data-lighting',
     }).then((treeData) => {
       console.log('microAppLevel返回', treeData);
       this.setState({
@@ -148,6 +150,14 @@ class DevToolsPage extends React.PureComponent<DevToolsPageProps, DevToolsPageSt
     });
   };
 
+  private refresh = () => {
+    this.setState({
+      selectInfo: null,
+    }, () => {
+      this.getTree();
+    });
+  };
+
   public render() {
     const {
       treeData,
@@ -158,7 +168,7 @@ class DevToolsPage extends React.PureComponent<DevToolsPageProps, DevToolsPageSt
       <div className={styles.container}>
         <Row gutter={10} style={{ display: 'flex', alignItems: 'stretch' }}>
           <Col span={4} style={{ flex: 1 }}>
-            <Card style={{ height: '100%' }} size="small" title="选择子应用" extra={<Button type="link" icon={<RedoOutlined rev={null} />} onClick={this.getTree} />}>
+            <Card style={{ height: '100%' }} size="small" title="选择子应用" extra={<Button type="link" icon={<RedoOutlined rev={null} />} onClick={this.refresh} />}>
               <Tree
                 defaultExpandAll
                 autoExpandParent
